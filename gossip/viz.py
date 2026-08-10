@@ -220,8 +220,22 @@ TEMPLATE = """<!doctype html>
   footer {{ margin-top:3rem; padding-top:1.25rem; border-top:1px solid var(--line);
             color:var(--dim); font-size:.85rem; }}
   a {{ color:var(--accent); }}
+  .nav{{display:flex;gap:.15rem;flex-wrap:wrap;margin:0 0 1.5rem;
+       border-bottom:1px solid var(--line);padding-bottom:.6rem}}
+  .nav a{{color:var(--dim);text-decoration:none;padding:.3rem .7rem;border-radius:6px;
+         font-size:.88rem}}
+  .nav a:hover{{color:var(--ink);background:rgba(255,255,255,.05)}}
+  .nav a[aria-current="page"]{{color:var(--accent);font-weight:600;
+         background:rgba(255,255,255,.06)}}
+
 </style>
 </head><body><div class="wrap">
+
+<nav class="nav" aria-label="Pages">
+  <a href="index.html" aria-current="page">the graph</a>
+  <a href="console.html">pre-mortem console</a>
+  <a href="whisper.html">whisper (game)</a>
+</nav>
 
 <h1>gossip</h1>
 <p class="sub">Brain&rsquo;s co-verification graph, read as a social network.

@@ -91,10 +91,24 @@ TEMPLATE = r"""<!doctype html>
   .win h3{color:var(--green)} .lose h3{color:var(--red)}
   footer{margin-top:2.5rem;padding-top:1rem;border-top:1px solid var(--line);
          color:var(--dim);font-size:.85rem}
+
+  .nav{display:flex;gap:.15rem;flex-wrap:wrap;margin:0 0 1.5rem;
+       border-bottom:1px solid var(--line);padding-bottom:.6rem}
+  .nav a{color:var(--dim);text-decoration:none;padding:.3rem .7rem;border-radius:6px;
+         font-size:.88rem}
+  .nav a:hover{color:var(--ink);background:rgba(255,255,255,.05)}
+  .nav a[aria-current="page"]{color:var(--gold);font-weight:600;
+         background:rgba(255,255,255,.06)}
   code{background:#0d0c0b;border:1px solid var(--line);border-radius:4px;
        padding:.03rem .3rem;font-size:.85em;font-family:ui-monospace,monospace}
 </style>
 </head><body><div class="wrap">
+
+<nav class="nav" aria-label="Pages">
+  <a href="index.html">the graph</a>
+  <a href="console.html">pre-mortem console</a>
+  <a href="whisper.html" aria-current="page">whisper (game)</a>
+</nav>
 
 <h1>Whisper</h1>
 <p class="sub">Something happened in the village last night. Everyone has heard
@@ -121,7 +135,7 @@ about it. Almost no one saw it.</p>
 Each villager repeats what they were told and says who told them. Follow that
 backwards and you reach someone who was actually there — they are the only ones
 worth believing. The version most of the village agrees on is correct
-<b>38%</b> of the time.
+<b>33.7%</b> of the time — measured over 300 seeds, and pinned by a test.
 <br><br>
 Every case is a pure function of its seed: no clocks, no ambient randomness, and
 each draw addressed by name rather than by turn, so case <code>7</code> is the

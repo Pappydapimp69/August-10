@@ -136,8 +136,22 @@ TEMPLATE = r"""<!doctype html>
   footer{margin-top:2.5rem;padding-top:1rem;border-top:1px solid var(--line);
          color:var(--dim);font-size:.83rem}
   a{color:var(--accent)}
+  .nav{display:flex;gap:.15rem;flex-wrap:wrap;margin:0 0 1.5rem;
+       border-bottom:1px solid var(--line);padding-bottom:.6rem}
+  .nav a{color:var(--dim);text-decoration:none;padding:.3rem .7rem;border-radius:6px;
+         font-size:.88rem}
+  .nav a:hover{color:var(--ink);background:rgba(255,255,255,.05)}
+  .nav a[aria-current="page"]{color:var(--accent);font-weight:600;
+         background:rgba(255,255,255,.06)}
+
 </style>
 </head><body><div class="wrap">
+
+<nav class="nav" aria-label="Pages">
+  <a href="index.html">the graph</a>
+  <a href="console.html" aria-current="page">pre-mortem console</a>
+  <a href="whisper.html">whisper (game)</a>
+</nav>
 
 <h1>pre-mortem console</h1>
 <p class="sub">Name what you are about to build. The grid is what the canon has
