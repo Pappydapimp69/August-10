@@ -45,7 +45,10 @@ def main(argv=None):
         description="Read Brain's co-verification graph as a social network.",
     )
     p.add_argument("report", nargs="?", default="summary",
-                   choices=sorted(report.REPORTS), help="which report to print")
+                   choices=sorted(list(report.REPORTS) + ["viz"]),
+                   help="which report to print ('viz' writes an HTML page)")
+    p.add_argument("--out", default="docs/index.html",
+                   help="output path for `viz` (default docs/index.html)")
     p.add_argument("--canon", action="append", default=None,
                    help=f"canon base holding projects/ (default {DEFAULT_CANON})")
     p.add_argument("--asof", default=None,
@@ -85,7 +88,16 @@ def main(argv=None):
             prior = json.load(fh)
 
     ctx = context(canon, args.asof, cfg or None, args.margin, prior)
-    report.REPORTS[args.report](ctx)
+
+    if args.report == "viz":
+        from . import viz
+        parent = os.path.dirname(os.path.abspath(args.out))
+        os.makedirs(parent, exist_ok=True)
+        with open(args.out, "w", encoding="utf-8") as fh:
+            fh.write(viz.render(ctx))
+        print(f"✓ wrote {args.out}")
+    else:
+        report.REPORTS[args.report](ctx)
 
     if args.save_prior:
         flat = {n: lb for lb, members in ctx["partition"] for n in members}

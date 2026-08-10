@@ -1,0 +1,90 @@
+# An EXPLICIT Pages workflow, not the zero-config "dynamic" branch-source
+# builder. Recorded reasons, from canon:
+#
+#   the-game-prologue#E11 — prefer an inspectable CI workflow with the test
+#     suite as its first gate; the auto builder's failure mode is a silent
+#     queue-with-no-jobs that reports success while deploying nothing.
+#   dbh#E6 — if a dynamic branch-source run hangs queued with no jobs, an
+#     explicit workflow plus a check of the `github-pages` environment policy
+#     is the fix, not waiting.
+#   opticon#E3 — Pages via Actions deploys only from the DEFAULT branch. It
+#     blocks at deploy setup, not at authoring, which is why `build` runs on
+#     any branch and only `deploy` is gated on the default one.
+#   opticon#E8 — a green deploy does not mean the URL serves yet; verify with
+#     a cache-buster and treat an immediate 404 as propagation, not config.
+
+name: Pages
+
+on:
+  push:
+    branches: ["**"]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      # the gate: a deploy that ships a broken tool is worse than no deploy
+      - name: Tests
+        run: python3 -m unittest discover -s tests -t . -v
+
+      # the page is generated from whatever canon is reachable; on a runner
+      # with no ~/.brain that is the test fixture, which still exercises the
+      # whole render path end to end
+      - name: Build page
+        run: |
+          if [ -d "$HOME/.brain/memory/projects" ]; then
+            CANON="$HOME/.brain/memory"
+          else
+            CANON="tests/fixtures/canon"
+            echo "::notice::no ~/.brain on the runner — rendering the fixture canon"
+          fi
+          python3 -m gossip.cli viz --canon "$CANON" --out docs/index.html
+          test -s docs/index.html
+
+      - uses: actions/configure-pages@v5
+        if: github.ref_name == github.event.repository.default_branch
+      - uses: actions/upload-pages-artifact@v3
+        if: github.ref_name == github.event.repository.default_branch
+        with:
+          path: docs
+
+  deploy:
+    # Pages deploys only from the default branch (opticon#E3)
+    if: github.ref_name == github.event.repository.default_branch
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4
+
+      # a reported-success deploy is not a serving URL (opticon#E8)
+      - name: Verify the served URL
+        run: |
+          URL="${{ steps.deployment.outputs.page_url }}"
+          for attempt in 1 2 3 4 5; do
+            CODE=$(curl -s -o /dev/null -w '%{http_code}' "${URL}?cb=${GITHUB_SHA}-${attempt}")
+            echo "attempt ${attempt}: HTTP ${CODE}"
+            [ "$CODE" = "200" ] && exit 0
+            sleep 15
+          done
+          echo "::error::${URL} still not serving after 5 attempts"
+          exit 1
