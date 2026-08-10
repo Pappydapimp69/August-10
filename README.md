@@ -158,3 +158,57 @@ python3 -m unittest discover -s tests -t .    # 55 tests
 Fixture-based unit tests plus integration tests against the real canon, which
 skip cleanly on a machine with no `~/.brain`. The claims the README makes about
 the live graph are asserted there, not just printed here.
+
+---
+
+# Whisper
+
+A deduction game, in `whisper/`, built **from** this canon rather than about it.
+Something happened in the village. Everyone has heard about it; almost no one
+saw it. Each villager repeats what they were told and names who told them —
+follow that attribution backwards and you reach someone who was actually there.
+
+Play it: [`docs/whisper.html`](docs/whisper.html) · build it: `python3 -c
+"from whisper.export import render; open('docs/whisper.html','w').write(render(range(40)))"`
+
+The lessons it is made of, and what each one changed:
+
+**Every roll through one seeded stream, no ambient entropy.** Standard, and not
+enough on its own — a seeded stream is an *ordinal* space, so roll 41 belongs to
+whoever asks forty-first. Insert one villager and every later draw shifts,
+rewriting unrelated parts of the world while the tests still pass. So nothing
+here draws in sequence: every value is a pure function of seed plus a **symbolic
+address** (`("villager", 3, "trait")`) via a keyed hash. Adding a villager cannot
+perturb an existing one. Tested by taking 50 unrelated draws between two reads of
+the same address.
+
+**A global guarantee needs a construction that guarantees it, verified by an
+actual solver over many seeds — not by eye.** The canon records ~20% unsolvable
+levels from placing a key uniformly at random. The same trap applies here: a
+board where the truth can't be traced looks exactly as rich as one where it can.
+So `solver.py` never consults the generator's intent — it plays from the starting
+villager, follows only attribution pointers, and spends interviews. **300/300
+seeds solvable**, 2–5 interviews against a budget of 6.
+
+**Canonicalize sorted-key serialization before hashing.** A fingerprint that
+disagrees about key order reports drift on every unrelated refactor until nobody
+trusts it.
+
+**Rumour as a traveling token: witness → carry → mutate.** The mechanic itself.
+
+## Two design ideas the measurements killed
+
+**A single rumour chain made a bad game.** Every board took exactly the same
+number of interviews and village consensus matched the truth 55% of the time —
+so guessing the popular answer was a coin flip rather than a mistake.
+
+**Branching made consensus *more* reliable, not less.** The opposite of my
+prediction. The reason is structural: the truth sits at the root of the tree, so
+it owns the largest descendant set, and a mutation can only ever infect its own
+subtree. Getting consensus to be an actively losing play needed a parameter sweep
+— 200 seeds per cell, 18 cells — landing on `chain=4, mutate=0.65, confidants=3`.
+
+At those values the village's favourite answer is right **33.7%** of the time.
+Believing everyone loses; tracing one person's source always wins. That number is
+pinned by a test, because a change that quietly makes consensus a winning
+strategy has turned the puzzle into something else.

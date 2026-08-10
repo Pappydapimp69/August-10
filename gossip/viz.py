@@ -227,7 +227,9 @@ TEMPLATE = """<!doctype html>
 <p class="sub">Brain&rsquo;s co-verification graph, read as a social network.
 Every figure recomputed from canon &middot; as of {asof}.<br>
 &rarr; <a href="console.html"><b>Open the pre-mortem console</b></a> &mdash; name
-what you are about to build, see what the canon says will bite it.</p>
+what you are about to build, see what the canon says will bite it.<br>
+&rarr; <a href="whisper.html"><b>Play Whisper</b></a> &mdash; a deduction game built
+from this canon's determinism and rumour-propagation lessons, not about it.</p>
 
 <div class="stats">{stats}</div>
 
