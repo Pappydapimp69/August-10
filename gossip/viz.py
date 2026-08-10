@@ -235,6 +235,7 @@ TEMPLATE = """<!doctype html>
   <a href="index.html" aria-current="page">the graph</a>
   <a href="console.html">pre-mortem console</a>
   <a href="whisper.html">whisper (game)</a>
+  <a href="ember.html">ember (world)</a>
 </nav>
 
 <h1>gossip</h1>

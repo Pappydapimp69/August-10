@@ -108,6 +108,7 @@ TEMPLATE = r"""<!doctype html>
   <a href="index.html">the graph</a>
   <a href="console.html">pre-mortem console</a>
   <a href="whisper.html" aria-current="page">whisper (game)</a>
+  <a href="ember.html">ember (world)</a>
 </nav>
 
 <h1>Whisper</h1>

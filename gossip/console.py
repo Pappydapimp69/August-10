@@ -151,6 +151,7 @@ TEMPLATE = r"""<!doctype html>
   <a href="index.html">the graph</a>
   <a href="console.html" aria-current="page">pre-mortem console</a>
   <a href="whisper.html">whisper (game)</a>
+  <a href="ember.html">ember (world)</a>
 </nav>
 
 <h1>pre-mortem console</h1>
