@@ -28,6 +28,12 @@
          border:1px solid var(--line);border-radius:6px;padding:.3rem .7rem;cursor:pointer}
   button:hover{border-color:var(--accent)}
   button[aria-pressed="true"]{border-color:var(--accent);color:var(--accent)}
+  #log{margin-top:.8rem;background:var(--panel);border:1px solid var(--line);
+       border-radius:8px;padding:.55rem .9rem;font-size:.85rem;line-height:1.7;
+       min-height:3.2rem}
+  #log div{color:var(--dim)}
+  #log div:first-child{color:var(--ink)}
+  #log .d{color:var(--accent);font-variant-numeric:tabular-nums;margin-right:.4rem}
   footer{margin-top:1.6rem;padding-top:1rem;border-top:1px solid var(--line);
          color:var(--dim);font-size:.85rem;max-width:80ch}
   code{background:#0a0b10;border:1px solid var(--line);border-radius:4px;
@@ -43,13 +49,14 @@
 </nav>
 
 <h1>Ember</h1>
-<p class="sub"><b>Click anywhere to start a fire</b> — or just watch. Three
-tribes gather wood, raise their camps from firepits into walled halls, envy
-each other's stockpiles, and go to war: raiders slip out to steal from enemy
-camps, defenders chase them off inside their own ring of territory. Storms
-still roll in, lightning still strikes, flowers still get eaten. And everything
-that rages here — fire and war alike — carries a finite, dwindling budget.
-Nothing can rage forever, by construction.</p>
+<p class="sub"><b>Click anywhere to start a fire</b> — or just watch the
+chronicle. Three tribes gather wood and quarry stone, raise camps into walled
+halls, forge spears, and build shrines to the Moon, the Storm, or the Grove.
+They send gift caravans, demand tribute, swear friendships, nurse permanent
+grudges, and face dilemmas their own character decides — mercy or hoarding,
+honor or spoils. Wars still happen. And everything that rages here — fire and
+war alike — carries a finite, dwindling budget. Nothing rages forever, by
+construction.</p>
 
 <canvas id="c" width="960" height="560"></canvas>
 
@@ -65,36 +72,40 @@ Nothing can rage forever, by construction.</p>
   <button id="new" type="button">new world</button>
 </div>
 
+<div id="log" aria-label="Chronicle"></div>
+
 <footer>
-Everything here is a recorded lesson wearing a costume. Fire — and now
-<b>war</b> — carries a <b>generation budget</b>: a radius-capped fire was once
-observed relighting the same cells forever (<code>the-answering-deep#E11</code>),
-and a cautious opponent-AI was once observed stalemating indefinitely
-(tension <code>T24</code>) — so every war opens with a finite raid budget and
-must end; a truce with its own timer follows, which is hysteresis applied to
-diplomacy. Defenders chase intruders only inside a ring around their own camp,
-then break off and walk home (<code>pursuit-ring-territory /
-defend-and-reset</code>), and one defender spotting a raider is what commits
-the chase — the harmless sensor triggers the hunter
-(<code>coupled-enemy-alert</code>). Mood arbitration is tiered because a
-switching margin inside the urgent band can defeat a veto
-(<code>hysteresis-can-defeat-a-saturated-veto</code>): fleeing fire outranks
-war, war outranks chores, and the margin governs only the chores. Defenders
-accelerate harder than raiders because movement-speed parity, not cleverness,
-decides a chase (<code>movement-speed-parity-dominates-flee-ai</code>). Trees
-are spaced by min-distance rejection (<code>sandbox-scatter#E1</code>); the
-synthesized sound initializes on your click, fire-and-forget, every call
-guarded (<code>dog#E1</code>), scheduled on the AudioContext clock
-(<code>shadow#E1</code>) under a voice budget (<code>dog#E6</code>). Weather,
-worldgen, wander targets, and every battle roll come from one seed with no
-ambient entropy: world <code>7</code> fights the same wars on every machine,
-forever.
+Everything here is a recorded lesson wearing a costume. Fire and <b>war</b>
+carry <b>generation budgets</b> (<code>the-answering-deep#E11</code>; tension
+<code>T24</code> records that a cautious opponent stalemates forever without
+one). Diplomacy is <b>earned, not declared</b> — gift caravans and paid tribute
+move relations the way an earned currency moves a negotiation
+(<code>barter-economy / earned-currency</code>) — and every war leaves a
+<b>permanent grudge scoped to that pair</b>, capping how warm the friendship
+can ever become again (<code>non-decaying-pivotal-events /
+traumatic-memories-dont-fade</code>). Each tribe's <b>character</b> is two
+seeded values, mercy and honor, and the moral dilemmas — feed a starving
+neighbor or hoard, shelter enemy wounded or drive them out, return spoils
+taken after a truce or keep them — are resolved by those values and written to
+the chronicle (<code>trust-as-character</code>). Rituals ride the sky's own
+clock: the Moon tribe worships at night, the Storm tribe in the rain, the
+Grove at first light (<code>day-night / clock-as-pressure</code>). Defenders
+chase only inside their ring and reset (<code>pursuit-ring-territory</code>),
+a spotted raider commits the whole tribe (<code>coupled-enemy-alert</code>),
+mood arbitration is tiered because a margin inside the urgent band can defeat
+a veto (<code>hysteresis-can-defeat-a-saturated-veto</code>), and defenders
+out-accelerate raiders because speed parity decides chases. Spears are forged
+from wood and stone, carried to battle, and consumed by it. The synthesized
+sound is gesture-gated, fire-and-forget, guarded, clock-scheduled, and
+voice-budgeted (<code>dog#E1</code>, <code>shadow#E1</code>,
+<code>dog#E6</code>). One seed, no ambient entropy: world <code>7</code>
+fights the same wars, swears the same friendships, and forgives none of the
+same grudges, on every machine, forever.
 </footer>
 </div>
 
 <script>
 "use strict";
-// ---------- seeded rng + keyed hash: no ambient entropy in the sim ----------
 function mulberry32(a){return function(){a|=0;a=a+0x6D2B79F5|0;
   let t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;
   return((t^t>>>14)>>>0)/4294967296;}}
@@ -103,21 +114,37 @@ const W=960,H=560,DAY=5400;
 const cv=document.getElementById('c'),cx=cv.getContext('2d');
 const params=new URLSearchParams(location.search);
 let SEED=parseInt(params.get('seed')||'7',10)||7;
+// ?pause=1: rAF only draws; a test harness owns every step() call. Headless
+// rAF timing is not stable across loads (dog#E22) — a live tick racing a
+// driving harness reads as sim nondeterminism when it is only clock skew.
+const PAUSED=params.get('pause')==='1';
 let world, frame, firesSurvived=0, wildFires=0, bolts=[];
 let wars=[], truce={}, warsStarted=0, warsEnded=0, lastRaidFrame=-9999;
+let chronicle=[], metrics;
 
 const TRIBES=[
   {name:'amber', hues:[36,22,48]},
   {name:'blue',  hues:[205,232,186]},
   {name:'green', hues:[128,105,152]},
 ];
-const RING=95;          // territory ring: defend inside it, reset outside it
+const FAITHS=[
+  {name:'the Moon', glyph:'☾'},   // worships at night
+  {name:'the Storm',glyph:'⚡'},   // worships in rain
+  {name:'the Grove',glyph:'❦'},   // worships at first light
+];
+const RING=95;
 
-function h(){ // keyed hash → [0,1), pure function of seed + address
-  let x=world.seed|0;
+function h(){ let x=world.seed|0;
   for(let i=0;i<arguments.length;i++)
     x=Math.imul((x^(arguments[i]|0))+0x9E3779B9,0x85EBCA6B)^x>>>13;
-  x^=x>>>16; return (x>>>0)/4294967296;
+  x^=x>>>16; return (x>>>0)/4294967296; }
+
+function log(msg){
+  chronicle.push({d:1+dayIndex(), msg});
+  if(chronicle.length>200) chronicle.shift();
+  const el=document.getElementById('log');
+  el.innerHTML=chronicle.slice(-9).reverse()
+    .map(e=>'<div><span class="d">d'+e.d+'</span>'+e.msg+'</div>').join('');
 }
 
 function makeWorld(seed){
@@ -133,8 +160,18 @@ function makeWorld(seed){
     if(ok) trees.push({x,y,r:9+rnd()*7,state:'alive',burn:0,budget:0,regrow:0,
                        sway:rnd()*6.28});
   }
-  // camps: clear of pond, each other, and standing trees
+  const rocks=[];
+  for(let i=0;i<6;i++){
+    for(let a=0;a<200;a++){
+      const x=40+rnd()*(W-80), y=50+rnd()*(H-100);
+      if(Math.hypot(x-pond.x,y-pond.y)<pond.r+30) continue;
+      if(trees.some(t=>Math.hypot(x-t.x,y-t.y)<26)) continue;
+      if(rocks.some(r=>Math.hypot(x-r.x,y-r.y)<70)) continue;
+      rocks.push({x,y,amount:8}); break;
+    }
+  }
   const tribes=[];
+  const perm=[[0,1,2],[0,2,1],[1,0,2],[1,2,0],[2,0,1],[2,1,0]][(mulberry32(seed^99)()*6)|0];
   for(let i=0;i<3;i++){
     let best=null;
     for(let a=0;a<900&&!best;a++){
@@ -145,7 +182,11 @@ function makeWorld(seed){
       best={x,y};
     }
     if(!best) best={x:150+i*300,y:120+i*150};
-    tribes.push({camp:best, stock:3, name:TRIBES[i].name});
+    tribes.push({camp:best, stock:3, stone:0, spears:0, name:TRIBES[i].name,
+      faith:perm[i], shrine:false, favor:0, bless:0,
+      mercy:0.15+mulberry32(seed^(300+i))()*0.7,
+      honor:0.15+mulberry32(seed^(400+i))()*0.7,
+      gift:null});
   }
   const flowers=[];
   for(let i=0;i<90;i++){
@@ -161,16 +202,31 @@ function makeWorld(seed){
     critters.push({id:i,tribe:tr,
       x:tribes[tr].camp.x+(rnd()-0.5)*60, y:tribes[tr].camp.y+(rnd()-0.5)*60,
       vx:0,vy:0,thirst:rnd()*.5,hunger:rnd()*.5,mood:'wander',
-      carrying:0,wounded:0,tx:0,ty:0,retarget:0,
+      carrying:0,carryStone:0,wounded:0,tx:0,ty:0,retarget:0,
       hue:TRIBES[tr].hues[(i/3)|0], blink:rnd()*300|0});
   }
-  return {seed,rnd,pond,trees,tribes,flowers,stars,critters};
+  return {seed,rnd,pond,trees,rocks,tribes,flowers,stars,critters,
+          rel:{'0-1':0,'0-2':0,'1-2':0}, grudge:{'0-1':0,'0-2':0,'1-2':0},
+          allied:{'0-1':false,'0-2':false,'1-2':false}};
 }
 
-// ---------- weather: pure function of seed + day ----------
+// ---------- relations: earned, and permanently scarred ----------
+function pk(i,j){ return Math.min(i,j)+'-'+Math.max(i,j); }
+function relCap(i,j){ return 45-8*world.grudge[pk(i,j)]; }   // grudges never fade
+function bumpRel(i,j,d){
+  const k=pk(i,j);
+  world.rel[k]=Math.max(-60,Math.min(relCap(i,j),world.rel[k]+d));
+  const a=world.allied;
+  if(!a[k]&&world.rel[k]>=28){a[k]=true;metrics.alliances++;
+    log(world.tribes[i].name+' and '+world.tribes[j].name+' swore friendship');}
+  if(a[k]&&world.rel[k]<15){a[k]=false;
+    log('the friendship of '+world.tribes[i].name+' and '+world.tribes[j].name+' cooled');}
+}
+
 function dayIndex(){ return Math.floor(frame/DAY); }
 function dayPhase(){ return (frame%DAY)/DAY; }
 function isNight(){ const p=dayPhase(); return p>0.55&&p<0.95; }
+function isDawn(){ const p=dayPhase(); return p>=0.95||p<0.06; }
 function weather(){
   const d=dayIndex(), f=frame%DAY;
   if(h(d,101)>=0.65) return 'clear';
@@ -218,28 +274,118 @@ function stepFire(){
   bolts=bolts.filter(b=>b.ttl>0);
 }
 
-// ---------- war: envy starts it, a finite raid budget ends it (E11 + T24) ---
+// ---------- diplomacy, war, dilemmas ----------
 function tribeWar(i){ return wars.find(w=>w.a===i||w.b===i); }
 function enemyOf(w,i){ return w.a===i?w.b:w.a; }
+
 function stepWars(){
-  // upkeep: camps consume wood, so economies breathe instead of pinning at
-  // the cap — a besieged tribe can genuinely fall, and envy re-arms
-  if(frame%2700===0) for(const t of world.tribes) t.stock=Math.max(0,t.stock-1);
+  if(frame%2700===0) for(const t of world.tribes) t.stock=Math.max(0,t.stock-2);
+  for(const t of world.tribes) if(t.bless>0) t.bless--;
+
+  // peace slowly warms relations — but only up to the grudge-scarred cap
+  if(frame%5400===1200){
+    for(let i=0;i<3;i++)for(let j=i+1;j<3;j++)
+      if(!tribeWar(i)&&!tribeWar(j)&&world.rel[pk(i,j)]<relCap(i,j)) bumpRel(i,j,1);
+  }
   if(frame%400===0){
     for(let i=0;i<3;i++)for(let j=i+1;j<3;j++){
       if(tribeWar(i)||tribeWar(j))continue;
-      const key=i+'-'+j;
-      if((truce[key]||0)>frame)continue;          // diplomacy hysteresis
-      const si=world.tribes[i].stock, sj=world.tribes[j].stock;
-      const envy=Math.abs(si-sj)>=7 && h(frame,310+i*3+j)<0.5;
-      const spark=si>=5&&sj>=5 && h(frame,300+i*3+j)<0.10;
-      if(envy||spark){ wars.push({a:i,b:j,budget:7}); warsStarted++; }
+      const k=pk(i,j);
+      if((truce[k]||0)>frame || world.allied[k])continue;
+      const ti=world.tribes[i], tj=world.tribes[j];
+      const [rich,poor]=ti.stock>=tj.stock?[i,j]:[j,i];
+      const R=world.tribes[rich], P=world.tribes[poor];
+      // tribute: the strong demand instead of raiding — settlement has terms
+      if(R.stock-P.stock>=10 && h(frame,330+i*3+j)<0.35){
+        if(h(frame,331+i*3+j) < 0.2+0.6*(1-P.honor)){       // pride refuses
+          P.stock=Math.max(0,P.stock-2); R.stock=Math.min(40,R.stock+2);
+          metrics.tributesPaid++; bumpRel(i,j,4);
+          log(P.name+' paid tribute to '+R.name);
+        } else {
+          wars.push({a:rich,b:poor,budget:7,cause:'refused tribute'});
+          warsStarted++; metrics.tributeWars++;
+          log(P.name+' refused '+R.name+"'s demand — war");
+        }
+        continue;
+      }
+      const envy=Math.abs(ti.stock-tj.stock)>=7 && world.rel[k]<20
+                 && h(frame,310+i*3+j)<0.25;
+      const spark=ti.stock>=5&&tj.stock>=5 && world.rel[k]<25
+                 && h(frame,300+i*3+j)<0.03;
+      if((envy||spark) && !(ti.bless>0||tj.bless>0)){      // festivals keep peace
+        wars.push({a:i,b:j,budget:7,cause:envy?'envy':'a border spark'});
+        warsStarted++;
+        log(ti.name+' declared war on '+tj.name+' — '+(envy?'envy over the stockpile':'a border spark'));
+      }
     }
   }
+
   for(const w of [...wars]){
     if(w.budget<=0||world.tribes[w.a].stock<=0||world.tribes[w.b].stock<=0){
       wars=wars.filter(x=>x!==w); warsEnded++;
-      truce[Math.min(w.a,w.b)+'-'+Math.max(w.a,w.b)]=frame+(1.5*DAY|0);
+      const k=pk(w.a,w.b);
+      truce[k]=frame+(3*DAY|0);
+      world.grudge[k]++; bumpRel(w.a,w.b,-10);              // the scar is permanent
+      log('peace between '+world.tribes[w.a].name+' and '+world.tribes[w.b].name+
+          ' — the grudge remains');
+      // dilemma: spoils taken in a war that just ended — honor returns them
+      for(const c of world.critters){
+        if(c.carrying>0&&(c.tribe===w.a||c.tribe===w.b)&&c.mood==='raid'){
+          const en=enemyOf(w,c.tribe), T=world.tribes[c.tribe];
+          if(h(frame,700+c.id) < 0.2+0.6*T.honor){
+            world.tribes[en].stock=Math.min(40,world.tribes[en].stock+c.carrying);
+            metrics.dReturned++; bumpRel(c.tribe,en,10);
+            log(T.name+' returned the spoils to '+world.tribes[en].name);
+          } else {
+            T.stock=Math.min(40,T.stock+c.carrying);
+            metrics.dKept++; bumpRel(c.tribe,en,-8);
+            log(T.name+' kept the spoils — '+world.tribes[en].name+' remembers');
+          }
+          c.carrying=0;
+        }
+      }
+    }
+  }
+
+  // slower cadence: aid, mercy, gifts
+  if(frame%600===300){
+    for(let i=0;i<3;i++)for(let j=0;j<3;j++){
+      if(i===j)continue;
+      const ti=world.tribes[i], tj=world.tribes[j];
+      // dilemma: a starving neighbor at peace — mercy feeds them
+      if(!tribeWar(i)&&!tribeWar(j)&&ti.stock>=12&&tj.stock<=5&&!ti.gift){
+        if(h(frame,710+i*3+j) < 0.2+0.6*ti.mercy){
+          ti.gift={to:j,amount:3,kind:'aid'};
+          metrics.dAid++;
+          log(ti.name+' sent food to starving '+tj.name);
+        } else {
+          metrics.dHoard++; bumpRel(i,j,-6);
+          log(ti.name+' hoarded while '+tj.name+' starved');
+        }
+      }
+      // dilemma: enemy wounded lying inside my ring after the war — shelter?
+      if(!tribeWar(i)){
+        for(const c of world.critters){
+          if(c.tribe!==j||c.wounded<300)continue;
+          if(Math.hypot(c.x-ti.camp.x,c.y-ti.camp.y)>RING)continue;
+          if(h(frame,720+i*3+j+c.id) < 0.2+0.6*ti.mercy){
+            c.wounded=Math.min(c.wounded,120);
+            metrics.dShelter++; bumpRel(i,j,8);
+            log(ti.name+' tended '+tj.name+"'s wounded");
+          } else {
+            c.wounded=Math.min(c.wounded,400);
+            metrics.dExpel++; bumpRel(i,j,-5);
+            log(ti.name+' drove '+tj.name+"'s wounded from their fires");
+          }
+          break;
+        }
+      }
+      // goodwill gift: rich and friendly-ish, earn the relation
+      if(!tribeWar(i)&&!ti.gift&&ti.stock>=20&&world.rel[pk(i,j)]>=5&&
+         world.rel[pk(i,j)]<relCap(i,j)-5&&h(frame,730+i*3+j)<0.12){
+        ti.gift={to:j,amount:2,kind:'gift'};
+        log(ti.name+' sent a gift caravan to '+tj.name);
+      }
     }
   }
 }
@@ -250,32 +396,39 @@ function stepCritters(){
     if(c.wounded>0){ c.wounded--; c.vx=c.vy=0; c.mood='down'; continue; }
     c.thirst=Math.min(1,c.thirst+0.0004);
     c.hunger=Math.min(1,c.hunger+0.00032);
-    const myCamp=world.tribes[c.tribe].camp;
+    const T=world.tribes[c.tribe], myCamp=T.camp;
+    const speed=T.bless>0?1.15:1;
     let nearFire=null,fd=1e9;
     for(const t of world.trees){ if(t.state==='burning'){
       const d=Math.hypot(c.x-t.x,c.y-t.y); if(d<fd){fd=d;nearFire=t;} } }
     const w=tribeWar(c.tribe);
-    // coupled-enemy-alert: ANY intruder inside the ring commits this critter
     let intruder=null;
     if(w){
-      const en=enemyOf(w,c.tribe);
-      let bd=1e9;
+      const en=enemyOf(w,c.tribe); let bd=1e9;
       for(const o of cs){ if(o.tribe!==en||o.wounded>0)continue;
         const d=Math.hypot(o.x-myCamp.x,o.y-myCamp.y);
-        if(d<RING && d<bd){bd=d;intruder=o;} }
+        if(d<RING&&d<bd){bd=d;intruder=o;} }
     }
     const raidDuty = w && w.budget>0 && !intruder &&
-      (c.id===[c.tribe, c.tribe+3, c.tribe+6][w.budget%3]);
+      (c.id===[c.tribe,c.tribe+3,c.tribe+6][w.budget%3]);
+    const giftDuty = T.gift && !w &&
+      (c.id===[c.tribe,c.tribe+3,c.tribe+6][(T.gift.to+dayIndex())%3]);
 
-    // TIERED arbitration: margin-hysteresis only among the chores — a margin
-    // inside the urgent band can defeat a veto, so the urgent band has none
+    // tiered arbitration; margin-hysteresis only among the chores
     if(nearFire&&fd<130) c.mood='flee';
     else if(intruder)    c.mood='defend';
     else if(raidDuty)    c.mood='raid';
+    else if(giftDuty)    c.mood='gift';
     else{
+      const wx=weather();
+      const worshipTime = T.shrine && !w &&
+        ((T.faith===0&&isNight())||(T.faith===1&&wx!=='clear')||(T.faith===2&&isDawn()));
+      const needStone = (!T.shrine||T.spears<2) && world.rocks.some(r=>r.amount>0);
       const scores={
         drink:c.thirst*0.9, eat:c.hunger*0.85,
         gather:(isNight()?0:0.6)+(c.carrying?0.05:0),
+        stone:(isNight()||!needStone?0:0.65)+(c.carryStone?0.05:0),
+        worship:worshipTime?0.8:0,
         sleep:isNight()?0.62:0, wander:0.3};
       if(!(c.mood in scores)) c.mood='wander';
       let best=c.mood, bs=scores[c.mood]||0;
@@ -286,16 +439,14 @@ function stepCritters(){
     if(c.mood==='flee'&&nearFire){
       const d=Math.max(fd,1); c.vx+=(c.x-nearFire.x)/d*.5; c.vy+=(c.y-nearFire.y)/d*.5;
     } else if(c.mood==='defend'&&intruder){
-      // defenders out-accelerate raiders: parity decides chases, not cleverness
       const d=Math.hypot(intruder.x-c.x,intruder.y-c.y)||1;
-      c.vx+=(intruder.x-c.x)/d*.26; c.vy+=(intruder.y-c.y)/d*.26;
+      c.vx+=(intruder.x-c.x)/d*.26*speed; c.vy+=(intruder.y-c.y)/d*.26*speed;
     } else if(c.mood==='raid'&&w){
       const en=world.tribes[enemyOf(w,c.tribe)];
-      if(c.carrying>0){ // haul the loot home
+      if(c.carrying>0){
         const d=Math.hypot(myCamp.x-c.x,myCamp.y-c.y)||1;
-        if(d<12){ world.tribes[c.tribe].stock=Math.min(40,world.tribes[c.tribe].stock+c.carrying);
-                  c.carrying=0; }
-        else { c.vx+=(myCamp.x-c.x)/d*.22; c.vy+=(myCamp.y-c.y)/d*.22; }
+        if(d<12){T.stock=Math.min(40,T.stock+c.carrying);c.carrying=0;}
+        else{c.vx+=(myCamp.x-c.x)/d*.22*speed;c.vy+=(myCamp.y-c.y)/d*.22*speed;}
       } else {
         const d=Math.hypot(en.camp.x-c.x,en.camp.y-c.y)||1;
         if(d<14){
@@ -305,26 +456,68 @@ function stepCritters(){
             const s=Math.min(2,en.stock); en.stock-=s; c.carrying=s;
             w.budget--; lastRaidFrame=frame;
           }
-        } else { c.vx+=(en.camp.x-c.x)/d*.22; c.vy+=(en.camp.y-c.y)/d*.22; }
+        } else {c.vx+=(en.camp.x-c.x)/d*.22*speed;c.vy+=(en.camp.y-c.y)/d*.22*speed;}
+      }
+    } else if(c.mood==='gift'&&T.gift){
+      const G=world.tribes[T.gift.to];
+      const d=Math.hypot(G.camp.x-c.x,G.camp.y-c.y)||1;
+      if(d<14){
+        G.stock=Math.min(40,G.stock+T.gift.amount);
+        bumpRel(c.tribe,T.gift.to, T.gift.kind==='aid'?15:9);
+        metrics.gifts++;
+        T.gift=null;
+      } else {c.vx+=(G.camp.x-c.x)/d*.2;c.vy+=(G.camp.y-c.y)/d*.2;}
+    } else if(c.mood==='worship'&&T.shrine){
+      const sx=myCamp.x-40, sy=myCamp.y+20;
+      const d=Math.hypot(sx-c.x,sy-c.y)||1;
+      if(d>18){c.vx+=(sx-c.x)/d*.14;c.vy+=(sy-c.y)/d*.14;}
+      else{
+        c.vx*=.8;c.vy*=.8;
+        T.favor=Math.min(1,T.favor+0.00008);
+        if(T.favor>=1){
+          T.favor=0; T.bless=DAY|0; metrics.blessings++;
+          log(FAITHS[T.faith].name+' smiled on '+T.name);
+        }
       }
     } else if(c.mood==='drink'){
       const p=world.pond,d=Math.hypot(c.x-p.x,c.y-p.y);
       if(d>p.r+12){c.vx+=(p.x-c.x)/d*.18;c.vy+=(p.y-c.y)/d*.18;}
-      else {c.thirst=Math.max(0,c.thirst-0.006);c.vx*=.8;c.vy*=.8;}
+      else{c.thirst=Math.max(0,c.thirst-0.006);c.vx*=.8;c.vy*=.8;}
     } else if(c.mood==='eat'){
       let bf=null,bd2=1e9;
       for(const f of world.flowers){ if(f.eaten>0)continue;
         const d=Math.hypot(c.x-f.x,c.y-f.y); if(d<bd2){bd2=d;bf=f;} }
       if(bf){
         if(bd2>6){c.vx+=(bf.x-c.x)/bd2*.16;c.vy+=(bf.y-c.y)/bd2*.16;}
-        else {bf.eaten=1800; c.hunger=Math.max(0,c.hunger-0.55);}
+        else{bf.eaten=1800;c.hunger=Math.max(0,c.hunger-0.55);}
+      }
+    } else if(c.mood==='stone'){
+      if(c.carryStone>0){
+        const d=Math.hypot(myCamp.x-c.x,myCamp.y-c.y)||1;
+        if(d<12){
+          T.stone+=c.carryStone; c.carryStone=0;
+          while(T.stone>=1&&T.stock>=1&&T.spears<3){    // forge
+            T.stone--;T.stock--;T.spears++;metrics.spearsCrafted++;
+          }
+          if(!T.shrine&&T.stone>=5){
+            T.stone-=5;T.shrine=true;
+            log(T.name+' raised a shrine to '+FAITHS[T.faith].name);
+          }
+        } else {c.vx+=(myCamp.x-c.x)/d*.16;c.vy+=(myCamp.y-c.y)/d*.16;}
+      } else {
+        let br=null,bd3=1e9;
+        for(const r of world.rocks){ if(r.amount<=0)continue;
+          const d=Math.hypot(r.x-c.x,r.y-c.y); if(d<bd3){bd3=d;br=r;} }
+        if(br){
+          if(bd3>10){c.vx+=(br.x-c.x)/bd3*.16;c.vy+=(br.y-c.y)/bd3*.16;}
+          else{br.amount--;c.carryStone=1;}
+        }
       }
     } else if(c.mood==='gather'){
       if(c.carrying>0){
         const d=Math.hypot(myCamp.x-c.x,myCamp.y-c.y)||1;
-        if(d<12){ world.tribes[c.tribe].stock=Math.min(40,world.tribes[c.tribe].stock+c.carrying);
-                  c.carrying=0; }
-        else { c.vx+=(myCamp.x-c.x)/d*.16; c.vy+=(myCamp.y-c.y)/d*.16; }
+        if(d<12){T.stock=Math.min(40,T.stock+c.carrying);c.carrying=0;}
+        else{c.vx+=(myCamp.x-c.x)/d*.16;c.vy+=(myCamp.y-c.y)/d*.16;}
       } else {
         let bt=null,bd3=1e9;
         for(const t of world.trees){ if(t.state!=='alive')continue;
@@ -348,15 +541,22 @@ function stepCritters(){
     c.vx*=.92;c.vy*=.92;c.x+=c.vx;c.y+=c.vy;
     c.x=Math.max(12,Math.min(W-12,c.x));c.y=Math.max(12,Math.min(H-12,c.y));
   }
-  // combat: defender catches raider → deterministic roll, loser goes down
+  // combat — spears are taken from the armory and consumed by the fight
   for(const w of wars){
     for(const c of cs){
       if(c.mood!=='defend'||c.wounded>0)continue;
       for(const r of cs){
         if(r.tribe!==enemyOf(w,c.tribe)||r.wounded>0)continue;
         if(Math.hypot(r.x-c.x,r.y-c.y)<10){
-          const loser = h(frame,900+c.id*10+r.id)<0.6 ? r : c;  // home advantage
-          loser.wounded=700; loser.carrying=0;                  // loot is dropped
+          const TD=world.tribes[c.tribe], TR=world.tribes[r.tribe];
+          const dS=TD.spears>0?(TD.spears--,1):0;
+          const rS=TR.spears>0?(TR.spears--,1):0;
+          if(dS||rS)metrics.spearCombats++;
+          let p=0.6+0.2*dS-0.2*rS
+                +(TD.bless>0?0.08:0)-(TR.bless>0?0.08:0);
+          p=Math.max(0.15,Math.min(0.9,p));
+          const loser = h(frame,900+c.id*10+r.id)<p ? r : c;
+          loser.wounded=700; loser.carrying=0; loser.carryStone=0;
           w.budget--; lastRaidFrame=frame;
         }
       }
@@ -364,7 +564,7 @@ function stepCritters(){
   }
 }
 
-// ---------- synthesized audio: zero assets, gesture-gated, every call guarded
+// ---------- audio ----------
 let AU=null, soundOn=false;
 function initAudio(){
   if(AU) return;
@@ -374,7 +574,7 @@ function initAudio(){
     const master=ctx.createGain(); master.gain.value=0; master.connect(ctx.destination);
     const buf=ctx.createBuffer(1,ctx.sampleRate*2,ctx.sampleRate);
     const ch=buf.getChannelData(0);
-    for(let i=0;i<ch.length;i++) ch[i]=Math.random()*2-1;   // audio only — not sim
+    for(let i=0;i<ch.length;i++) ch[i]=Math.random()*2-1;
     const mk=(type,freq,q)=>{ const src=ctx.createBufferSource();
       src.buffer=buf; src.loop=true;
       const flt=ctx.createBiquadFilter(); flt.type=type; flt.frequency.value=freq;
@@ -410,7 +610,7 @@ function stepAudio(){
     const burning=world.trees.reduce((n,t)=>n+(t.state==='burning'),0);
     AU.rain.gain.value = wx==='clear'?0 : (wx==='storm'?0.16:0.10);
     AU.fire.gain.value = Math.min(0.22, burning*0.022)*(0.7+0.3*Math.sin(frame/4));
-    if(frame-lastRaidFrame<3) chirp(110,0.22,0.12,'triangle');   // war drum
+    if(frame-lastRaidFrame<3) chirp(110,0.22,0.12,'triangle');
     if(frame-AU.lastChirp>140 && h(dayIndex(),frame,55)<0.3){
       AU.lastChirp=frame;
       if(isNight()) chirp(4200+h(frame,56)*600,0.09,0.05);
@@ -423,36 +623,51 @@ function stepAudio(){
 function campLevel(stock){ return stock>=28?4:stock>=18?3:stock>=10?2:stock>=4?1:0; }
 function drawCamp(tr,i){
   const {x,y}=tr.camp, hue=TRIBES[i].hues[0], lv=campLevel(tr.stock);
-  const atWar=tribeWar(i);
-  if(atWar){ cx.strokeStyle=`hsla(${hue} 70% 60% / .18)`; cx.lineWidth=2;
+  if(tribeWar(i)){ cx.strokeStyle=`hsla(${hue} 70% 60% / .18)`; cx.lineWidth=2;
     cx.beginPath(); cx.arc(x,y,RING,0,7); cx.stroke(); }
-  cx.fillStyle='#3a342c';                                  // firepit stones
+  cx.fillStyle='#3a342c';
   for(let k=0;k<7;k++){const a=k/7*6.28;
     cx.fillRect(x+Math.cos(a)*8-1.5,y+Math.sin(a)*8-1.5,3,3);}
   cx.fillStyle=`rgba(255,${140+40*Math.sin(frame/7+i)},60,.8)`;
   cx.beginPath();cx.arc(x,y,3+Math.sin(frame/5+i)*1,0,7);cx.fill();
-  if(lv>=1){ cx.fillStyle=`hsl(${hue} 30% 42%)`;          // tent
+  if(lv>=1){ cx.fillStyle=`hsl(${hue} 30% 42%)`;
     cx.beginPath();cx.moveTo(x-24,y+6);cx.lineTo(x-14,y-12);cx.lineTo(x-4,y+6);
     cx.closePath();cx.fill(); }
-  if(lv>=2){ cx.fillStyle='#5a4632';cx.fillRect(x+8,y-8,16,13);  // hut
+  if(lv>=2){ cx.fillStyle='#5a4632';cx.fillRect(x+8,y-8,16,13);
     cx.fillStyle=`hsl(${hue} 35% 35%)`;
     cx.beginPath();cx.moveTo(x+5,y-8);cx.lineTo(x+16,y-18);cx.lineTo(x+27,y-8);
     cx.closePath();cx.fill(); }
-  if(lv>=3){ cx.fillStyle='#5a4632';cx.fillRect(x-28,y-24,13,10); // second hut
-    cx.strokeStyle='#6b5334';cx.lineWidth=3;cx.beginPath();      // palisade arc
+  if(lv>=3){ cx.fillStyle='#5a4632';cx.fillRect(x-28,y-24,13,10);
+    cx.strokeStyle='#6b5334';cx.lineWidth=3;cx.beginPath();
     cx.arc(x,y,34,Math.PI*0.15,Math.PI*0.85);cx.stroke();
     cx.beginPath();cx.arc(x,y,34,Math.PI*1.15,Math.PI*1.85);cx.stroke(); }
-  if(lv>=4){ cx.fillStyle='#6b5334';cx.fillRect(x-8,y-34,16,16); // hall
+  if(lv>=4){ cx.fillStyle='#6b5334';cx.fillRect(x-8,y-34,16,16);
     cx.fillStyle=`hsl(${hue} 45% 40%)`;
     cx.beginPath();cx.moveTo(x-12,y-34);cx.lineTo(x,y-46);cx.lineTo(x+12,y-34);
     cx.closePath();cx.fill();
-    cx.strokeStyle=`hsl(${hue} 70% 55%)`;cx.lineWidth=1.5;      // banner
+    cx.strokeStyle=`hsl(${hue} 70% 55%)`;cx.lineWidth=1.5;
     cx.beginPath();cx.moveTo(x+14,y-46);cx.lineTo(x+14,y-30);cx.stroke();
     cx.fillStyle=`hsl(${hue} 70% 55%)`;
     cx.beginPath();cx.moveTo(x+14,y-46);cx.lineTo(x+24,y-43);cx.lineTo(x+14,y-40);
     cx.closePath();cx.fill(); }
+  if(tr.shrine){                                       // stone cairn + glow
+    const sx=x-40, sy=y+20;
+    if(tr.bless>0||tr.favor>0.02){
+      cx.fillStyle=`hsla(${hue} 80% 70% / ${0.10+0.25*(tr.bless>0?1:tr.favor)})`;
+      cx.beginPath();cx.arc(sx,sy-4,13,0,7);cx.fill();
+    }
+    cx.fillStyle='#8b8d92';cx.fillRect(sx-5,sy-2,10,4);
+    cx.fillStyle='#a2a5ab';cx.fillRect(sx-3,sy-6,6,4);
+    cx.fillStyle='#c0c3c9';cx.fillRect(sx-1.5,sy-10,3,4);
+  }
+  if(tr.spears>0){                                     // armory rack
+    cx.strokeStyle='#c9b08a';cx.lineWidth=1.2;
+    for(let s=0;s<tr.spears;s++){
+      cx.beginPath();cx.moveTo(x+30+s*4,y+14);cx.lineTo(x+34+s*4,y+2);cx.stroke();
+    }
+  }
   cx.fillStyle=`hsl(${hue} 60% 70%)`;cx.font='9px sans-serif';
-  cx.fillText(tr.stock,x-3,y+18);
+  cx.fillText(tr.stock+(tr.stone?'+'+tr.stone+'s':''),x-6,y+18);
 }
 
 function draw(){
@@ -463,6 +678,12 @@ function draw(){
   cx.ellipse(pd.x,pd.y,pd.r+swell,(pd.r+swell)*.72,0,0,7);cx.fill();
   cx.fillStyle='#2a6d94';cx.beginPath();
   cx.ellipse(pd.x,pd.y,pd.r*.8,pd.r*.55,0,0,7);cx.fill();
+  for(const r of world.rocks){
+    if(r.amount<=0)continue;
+    const s=3+r.amount*0.7;
+    cx.fillStyle='#6e7077';cx.beginPath();cx.arc(r.x,r.y,s,0,7);cx.fill();
+    cx.fillStyle='#8b8d92';cx.beginPath();cx.arc(r.x-s*0.3,r.y-s*0.3,s*0.5,0,7);cx.fill();
+  }
   for(const f of world.flowers){
     if(f.eaten>1600) continue;
     if(f.eaten>0){ cx.fillStyle='#3f6b4a'; cx.fillRect(f.x+1,f.y+1,2,2); continue; }
@@ -499,7 +720,17 @@ function draw(){
       cx.beginPath();cx.arc(c.x,c.y,9,0,7);cx.stroke(); }
     if(c.mood==='defend'){ cx.strokeStyle='#fff';cx.lineWidth=1.5;
       cx.beginPath();cx.arc(c.x,c.y,9,0,7);cx.stroke(); }
+    if(c.mood==='gift'){ cx.strokeStyle='#7ee787';cx.lineWidth=1.5;
+      cx.beginPath();cx.arc(c.x,c.y,9,0,7);cx.stroke(); }
+    if(c.mood==='worship'){ cx.fillStyle='rgba(255,255,200,.6)';
+      cx.font='8px sans-serif';cx.fillText('✦',c.x-2,c.y-10); }
+    if((c.mood==='raid'||c.mood==='defend')&&world.tribes[c.tribe].spears>0){
+      cx.strokeStyle='#c9b08a';cx.lineWidth=1.2;
+      cx.beginPath();cx.moveTo(c.x-6,c.y+6);cx.lineTo(c.x+7,c.y-7);cx.stroke();
+    }
     if(c.carrying>0){ cx.fillStyle='#8a6b3a';
+      cx.beginPath();cx.arc(c.x+5,c.y-6,3,0,7);cx.fill(); }
+    if(c.carryStone>0){ cx.fillStyle='#8b8d92';
       cx.beginPath();cx.arc(c.x+5,c.y-6,3,0,7);cx.fill(); }
     cx.fillStyle='#111';
     if(down){ cx.font='8px sans-serif';cx.fillText('x x',c.x-6,c.y-1); }
@@ -555,7 +786,8 @@ function hud(){
   const alive=world.trees.filter(t=>t.state==='alive'||t.state==='sprout').length;
   document.getElementById('trees').textContent=alive+'/'+world.trees.length;
   document.getElementById('camps').textContent=
-    world.tribes.map((t,i)=>t.name[0]+t.stock+'·L'+campLevel(t.stock)).join(' ');
+    world.tribes.map((t,i)=>t.name[0]+t.stock+'·L'+campLevel(t.stock)+
+      (t.shrine?FAITHS[t.faith].glyph:'')).join(' ');
   const wtxt=wars.map(w=>world.tribes[w.a].name+'⚔'+world.tribes[w.b].name+
     ' ('+w.budget+')').join(', ');
   document.getElementById('wars').textContent=
@@ -567,8 +799,10 @@ function hud(){
 }
 
 function tick(){
-  frame++;
-  stepFire(); stepWars(); stepCritters(); stepAudio();
+  if(!PAUSED){
+    frame++;
+    stepFire(); stepWars(); stepCritters(); stepAudio();
+  }
   draw();
   if(frame%15===0)hud();
   requestAnimationFrame(tick);
@@ -576,8 +810,13 @@ function tick(){
 
 function boot(seed){
   SEED=seed; world=makeWorld(seed); frame=0; bolts=[];
-  wars=[]; truce={}; warsStarted=0; warsEnded=0;
+  wars=[]; truce={}; warsStarted=0; warsEnded=0; chronicle=[];
+  metrics={spearsCrafted:0,spearCombats:0,blessings:0,gifts:0,
+           tributesPaid:0,tributeWars:0,alliances:0,
+           dAid:0,dHoard:0,dShelter:0,dExpel:0,dReturned:0,dKept:0};
   history.replaceState(null,'','?seed='+seed);
+  document.getElementById('log').innerHTML=
+    '<div><span class="d">d1</span>three tribes woke by their fires</div>';
   hud();
 }
 
@@ -592,12 +831,12 @@ document.getElementById('sound').onclick=function(){
   this.textContent='sound: '+(soundOn?'on':'off');
 };
 
-// test hook — sim only (no draw, no audio), so a harness can fast-forward
 window.EMBER={ignite:(x,y)=>ignite(x,y,10,false),
   get world(){return world;},get frame(){return frame;},
   get weather(){return weather();},get wild(){return wildFires;},
   get wars(){return wars;},get warsStarted(){return warsStarted;},
-  get warsEnded(){return warsEnded;},
+  get warsEnded(){return warsEnded;},get metrics(){return metrics;},
+  get chronicle(){return chronicle;},
   step(){frame++;stepFire();stepWars();stepCritters();}};
 
 boot(SEED);
