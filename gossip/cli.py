@@ -45,9 +45,13 @@ def main(argv=None):
         description="Read Brain's co-verification graph as a social network.",
     )
     p.add_argument("report", nargs="?", default="summary",
-                   choices=sorted(list(report.REPORTS) + ["viz", "hazard"]),
+                   choices=sorted(list(report.REPORTS) + ["viz", "hazard", "console"]),
                    help="which report to print ('viz' writes an HTML page; "
-                        "'hazard' runs a pre-mortem over the tags in --plan)")
+                        "'hazard' runs a pre-mortem; 'console' writes the "
+                        "interactive pre-mortem page)")
+    p.add_argument("--include-prose", action="store_true",
+                   help="console: embed lesson text too (private — local renders "
+                        "only; the default embeds structure and ids alone)")
     p.add_argument("--plan", nargs="+", default=None, metavar="TAG",
                    help="tags describing what you are about to build (hazard)")
     p.add_argument("--out", default="docs/index.html",
@@ -98,6 +102,15 @@ def main(argv=None):
             print("gossip hazard --plan <tag> <tag> ...", file=sys.stderr)
             return 2
         hazard.report(ctx, args.plan)
+    elif args.report == "console":
+        from . import console
+        out = args.out if args.out != "docs/index.html" else "docs/console.html"
+        os.makedirs(os.path.dirname(os.path.abspath(out)), exist_ok=True)
+        ledger = os.path.expanduser("~/.brain/Tension/tension-ledger.md")
+        with open(out, "w", encoding="utf-8") as fh:
+            fh.write(console.render(ctx, ledger, args.include_prose))
+        print(f"✓ wrote {out}"
+              + ("  (WITH lesson prose — do not publish)" if args.include_prose else ""))
     elif args.report == "viz":
         from . import viz
         parent = os.path.dirname(os.path.abspath(args.out))

@@ -225,7 +225,9 @@ TEMPLATE = """<!doctype html>
 
 <h1>gossip</h1>
 <p class="sub">Brain&rsquo;s co-verification graph, read as a social network.
-Every figure recomputed from canon &middot; as of {asof}.</p>
+Every figure recomputed from canon &middot; as of {asof}.<br>
+&rarr; <a href="console.html"><b>Open the pre-mortem console</b></a> &mdash; name
+what you are about to build, see what the canon says will bite it.</p>
 
 <div class="stats">{stats}</div>
 
