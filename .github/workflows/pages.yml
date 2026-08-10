@@ -25,8 +25,13 @@ permissions:
   pages: write
   id-token: write
 
+# Per-ref, NOT a single shared "pages" group. With one group across every
+# branch, a push to a feature branch and a push to main land in the same queue,
+# and the newer one supersedes the older *pending* run — so a branch push
+# silently cancelled main's deploy two seconds after it started, leaving the
+# site serving the previous commit with no failure anywhere to look at.
 concurrency:
-  group: pages
+  group: pages-${{ github.ref }}
   cancel-in-progress: false
 
 jobs:
