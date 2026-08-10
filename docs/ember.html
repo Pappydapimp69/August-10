@@ -18,17 +18,18 @@
   .nav a[aria-current="page"]{color:var(--accent);font-weight:600;
          background:rgba(255,255,255,.06)}
   h1{font-size:1.7rem;margin:0 0 .15rem;letter-spacing:-.01em}
-  .sub{color:var(--dim);margin:0 0 1rem;max-width:72ch}
+  .sub{color:var(--dim);margin:0 0 1rem;max-width:74ch}
   canvas{width:100%;height:auto;display:block;border:1px solid var(--line);
          border-radius:10px;background:#0a2418;cursor:crosshair;touch-action:manipulation}
-  .bar{display:flex;gap:1rem;align-items:center;flex-wrap:wrap;margin:.7rem 0 0;
+  .bar{display:flex;gap:.9rem;align-items:center;flex-wrap:wrap;margin:.7rem 0 0;
        font-size:.88rem;color:var(--dim)}
   .bar b{color:var(--accent);font-variant-numeric:tabular-nums}
   button{font:inherit;font-size:.85rem;background:#1d2130;color:var(--ink);
          border:1px solid var(--line);border-radius:6px;padding:.3rem .7rem;cursor:pointer}
   button:hover{border-color:var(--accent)}
+  button[aria-pressed="true"]{border-color:var(--accent);color:var(--accent)}
   footer{margin-top:1.6rem;padding-top:1rem;border-top:1px solid var(--line);
-         color:var(--dim);font-size:.85rem;max-width:78ch}
+         color:var(--dim);font-size:.85rem;max-width:80ch}
   code{background:#0a0b10;border:1px solid var(--line);border-radius:4px;
        padding:.03rem .3rem;font-size:.85em;font-family:ui-monospace,monospace}
 </style>
@@ -42,60 +43,74 @@
 </nav>
 
 <h1>Ember</h1>
-<p class="sub"><b>Click anywhere to start a fire.</b> The trees burn, the
-creatures run, and then — always — the world comes back. Not because fire is
-gentle, but because every fire carries a finite, dwindling budget of spreads.
-It cannot rage forever, by construction.</p>
+<p class="sub"><b>Click anywhere to start a fire</b> — or just wait. Storms roll
+in on their own schedule, lightning starts fires you didn't, rain puts them out,
+flowers get eaten and grow back, and the world survives all of it. Every fire —
+yours or the sky's — carries a finite, dwindling budget of spreads. It cannot
+rage forever, by construction.</p>
 
 <canvas id="c" width="960" height="560"></canvas>
 
 <div class="bar">
   <span>world <b id="seed"></b></span>
   <span>day <b id="day"></b></span>
+  <span>sky <b id="sky"></b></span>
   <span>trees <b id="trees"></b></span>
   <span>burning <b id="burning"></b></span>
   <span>fires survived <b id="fires"></b></span>
+  <button id="sound" type="button" aria-pressed="false">sound: off</button>
   <button id="new" type="button">new world</button>
 </div>
 
 <footer>
-Everything here is a recorded lesson wearing a costume. The fire carries a
-<b>generation budget</b> because a radius-capped fire was once observed relighting
-the same cells forever — a burnt cell has no memory of having burned
-(<code>the-answering-deep#E11</code>). The trees are spaced by min-distance
-rejection because independent uniform scatter clumps — "looks random" and "looks
-even" are different properties (<code>sandbox-scatter#E1</code>). The creatures
-switch moods only when a new urge beats the current one by a real margin, because
-without hysteresis they thrash at every boundary. And the whole world grows from
-one seed with no ambient entropy, so world <code>7</code> is the same forest on
-every machine, forever. Night falls; they sleep; the burnt places sprout again.
+Everything here is a recorded lesson wearing a costume. Fire carries a
+<b>generation budget</b> because a radius-capped fire was once observed
+relighting the same cells forever — a burnt cell has no memory of having burned
+(<code>the-answering-deep#E11</code>); lightning uses the same budget, so even a
+world nobody clicks on survives its own weather. Trees are spaced by
+min-distance rejection because uniform scatter clumps
+(<code>sandbox-scatter#E1</code>). Creatures pick moods by utility with a real
+switching margin — and fleeing fire scores above the entire ordinary range,
+because a bonus inside the urgent band can defeat a veto
+(<code>hysteresis-can-defeat-a-saturated-veto</code>). The synthesized sound
+initializes on your click, fire-and-forget, with every call guarded — a
+<code>resume()</code> await once locked players out behind privacy shields
+(<code>dog#E1</code>) — and its chirps ride the AudioContext clock, never
+setTimeout (<code>shadow#E1</code>), under a strict voice budget with
+<code>onended</code> teardown (<code>dog#E6</code>). Weather, worldgen, and
+every wander target come from one seed with no ambient entropy: world
+<code>7</code> has the same storms on every machine, forever.
 </footer>
 </div>
 
 <script>
 "use strict";
-// ---------- seeded rng: no ambient entropy in worldgen ----------
+// ---------- seeded rng + keyed hash: no ambient entropy in the sim ----------
 function mulberry32(a){return function(){a|=0;a=a+0x6D2B79F5|0;
   let t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;
   return((t^t>>>14)>>>0)/4294967296;}}
 
-const W=960,H=560;
+const W=960,H=560,DAY=5400;              // 90s day at 60fps
 const cv=document.getElementById('c'),cx=cv.getContext('2d');
 const params=new URLSearchParams(location.search);
 let SEED=parseInt(params.get('seed')||'7',10)||7;
+let world, frame, firesSurvived=0, wildFires=0, bolts=[];
 
-let world, frame, firesSurvived=0;
+function h(){ // keyed hash → [0,1), pure function of seed + address
+  let x=world.seed|0;
+  for(let i=0;i<arguments.length;i++)
+    x=Math.imul((x^(arguments[i]|0))+0x9E3779B9,0x85EBCA6B)^x>>>13;
+  x^=x>>>16; return (x>>>0)/4294967296;
+}
 
 function makeWorld(seed){
   const rnd=mulberry32(seed);
   const pond={x:200+rnd()*560, y:180+rnd()*220, r:60+rnd()*30};
-  // min-distance rejection scatter — pond is pre-seeded into the rejection set
   const trees=[]; let tries=0;
-  while(trees.length<70 && tries<4000){
+  while(trees.length<70 && tries<4000){          // min-distance rejection
     tries++;
     const x=30+rnd()*(W-60), y=40+rnd()*(H-80);
-    const dp=Math.hypot(x-pond.x,y-pond.y);
-    if(dp<pond.r+34) continue;
+    if(Math.hypot(x-pond.x,y-pond.y)<pond.r+34) continue;
     let ok=true;
     for(const t of trees){ if(Math.hypot(x-t.x,y-t.y)<38){ok=false;break;} }
     if(ok) trees.push({x,y,r:9+rnd()*7,state:'alive',burn:0,budget:0,regrow:0,
@@ -105,30 +120,54 @@ function makeWorld(seed){
   for(let i=0;i<90;i++){
     const x=20+rnd()*(W-40), y=30+rnd()*(H-60);
     if(Math.hypot(x-pond.x,y-pond.y)<pond.r+8) continue;
-    flowers.push({x,y,h:rnd()});
+    flowers.push({x,y,h:rnd(),eaten:0});
   }
+  const stars=[];
+  for(let i=0;i<70;i++) stars.push({x:rnd()*W,y:rnd()*H*.9,tw:rnd()*6.28});
   const critters=[];
   for(let i=0;i<9;i++){
     critters.push({x:60+rnd()*(W-120),y:60+rnd()*(H-120),
-      vx:0,vy:0,thirst:rnd()*.5,mood:'wander',tx:0,ty:0,retarget:0,
+      vx:0,vy:0,thirst:rnd()*.5,hunger:rnd()*.5,mood:'wander',
+      tx:0,ty:0,retarget:0,
       hue:[46,16,200,120,270,330,180,90,20][i], blink:rnd()*300|0});
   }
-  return {seed,rnd,pond,trees,flowers,critters};
+  return {seed,rnd,pond,trees,flowers,stars,critters};
 }
 
-function ignite(x,y){
+// ---------- weather: a pure function of seed + day, no stored state ----------
+function dayIndex(){ return Math.floor(frame/DAY); }
+function dayPhase(){ return (frame%DAY)/DAY; }
+function isNight(){ const p=dayPhase(); return p>0.55&&p<0.95; }
+function weather(){
+  const d=dayIndex(), f=frame%DAY;
+  if(h(d,101)>=0.65) return 'clear';                 // 65% of days rain some
+  const start=800+h(d,102)*(DAY*0.5)|0;
+  const len=700+h(d,103)*1400|0;
+  if(f<start||f>start+len) return 'clear';
+  return h(d,104)<0.5 ? 'storm' : 'rain';
+}
+
+function ignite(x,y,budget,wild){
   let best=null,bd=1e9;
   for(const t of world.trees){ if(t.state!=='alive')continue;
     const d=Math.hypot(x-t.x,y-t.y); if(d<bd){bd=d;best=t;} }
-  if(best&&bd<160){best.state='burning';best.burn=0;best.budget=10;firesSurvived++;}
+  if(best&&bd<160){best.state='burning';best.burn=0;best.budget=budget;
+    if(wild)wildFires++; firesSurvived++; return true;}
+  return false;
 }
 
-// fire: finite monotonically-decreasing spread budget — the E11 lesson
+// fire: finite monotonically-decreasing spread budget — the E11 lesson.
+// Rain accelerates burnout and stops spread; lightning shares the budget rule.
 function stepFire(){
+  const wx=weather(), wet=wx!=='clear';
+  if(wx==='storm' && frame%89===0 && h(dayIndex(),frame,7)<0.5){
+    const lx=40+h(dayIndex(),frame,8)*(W-80), ly=40+h(dayIndex(),frame,9)*(H-80);
+    if(ignite(lx,ly,7,true)) bolts.push({x:lx,y:ly,ttl:14});
+  }
   for(const t of world.trees){
     if(t.state==='burning'){
-      t.burn++;
-      if(t.burn%36===0 && t.budget>0){
+      t.burn += wet?5:1;                                 // rain douses fast
+      if(!wet && t.burn%36===0 && t.budget>0){
         for(const o of world.trees){
           if(o.state!=='alive')continue;
           if(Math.hypot(o.x-t.x,o.y-t.y)<75){
@@ -143,25 +182,27 @@ function stepFire(){
       if(++t.burn>600)t.state='alive';
     }
   }
+  for(const f of world.flowers) if(f.eaten>0) f.eaten--;
+  for(const b of bolts) b.ttl--;
+  bolts=bolts.filter(b=>b.ttl>0);
 }
-
-function dayPhase(){ return (frame%5400)/5400; } // 90s day at 60fps
-function isNight(){ const p=dayPhase(); return p>0.55&&p<0.95; }
 
 function stepCritters(){
   for(const c of world.critters){
     c.thirst=Math.min(1,c.thirst+0.0004);
-    // utility scores
+    c.hunger=Math.min(1,c.hunger+0.00032);
     let nearFire=null,fd=1e9;
     for(const t of world.trees){ if(t.state==='burning'){
       const d=Math.hypot(c.x-t.x,c.y-t.y); if(d<fd){fd=d;nearFire=t;} } }
+    // flee sits ABOVE the whole ordinary range (max ~1) — a bonus inside the
+    // urgent band can defeat a veto, so nothing ordinary may reach 1.5
     const scores={
       flee: nearFire&&fd<130?1.5:0,
       drink: c.thirst*0.9,
+      eat: c.hunger*0.85,
       sleep: isNight()?0.62:0,
       wander: 0.3
     };
-    // hysteresis: switch only on a real margin over the current mood
     let best=c.mood, bs=scores[c.mood]||0;
     for(const m in scores){ if(scores[m]>bs*1.25 && scores[m]>bs){best=m;bs=scores[m];} }
     if(best!==c.mood){c.mood=best;c.retarget=0;}
@@ -172,6 +213,14 @@ function stepCritters(){
       const p=world.pond,d=Math.hypot(c.x-p.x,c.y-p.y);
       if(d>p.r+12){c.vx+=(p.x-c.x)/d*.18;c.vy+=(p.y-c.y)/d*.18;}
       else {c.thirst=Math.max(0,c.thirst-0.006);c.vx*=.8;c.vy*=.8;}
+    } else if(c.mood==='eat'){
+      let bf=null,bd2=1e9;
+      for(const f of world.flowers){ if(f.eaten>0)continue;
+        const d=Math.hypot(c.x-f.x,c.y-f.y); if(d<bd2){bd2=d;bf=f;} }
+      if(bf){
+        if(bd2>6){c.vx+=(bf.x-c.x)/bd2*.16;c.vy+=(bf.y-c.y)/bd2*.16;}
+        else {bf.eaten=1800; c.hunger=Math.max(0,c.hunger-0.55);}
+      }
     } else if(c.mood==='sleep'){
       c.vx*=.85;c.vy*=.85;
     } else {
@@ -185,23 +234,80 @@ function stepCritters(){
   }
 }
 
+// ---------- synthesized audio: zero assets, gesture-gated, every call guarded
+let AU=null, soundOn=false;
+function initAudio(){
+  if(AU) return;
+  try{
+    const ctx=new (window.AudioContext||window.webkitAudioContext)();
+    ctx.resume().catch(()=>{});               // fire-and-forget — never await
+    const master=ctx.createGain(); master.gain.value=0; master.connect(ctx.destination);
+    const buf=ctx.createBuffer(1,ctx.sampleRate*2,ctx.sampleRate);
+    const ch=buf.getChannelData(0);
+    for(let i=0;i<ch.length;i++) ch[i]=Math.random()*2-1;   // audio only — not sim
+    const mk=(type,freq,q)=>{ const src=ctx.createBufferSource();
+      src.buffer=buf; src.loop=true;
+      const flt=ctx.createBiquadFilter(); flt.type=type; flt.frequency.value=freq;
+      if(q)flt.Q.value=q;
+      const g=ctx.createGain(); g.gain.value=0;
+      src.connect(flt); flt.connect(g); g.connect(master); src.start();
+      return g; };
+    AU={ctx,master,voices:0,
+        rain:mk('lowpass',900),
+        fire:mk('bandpass',500,0.8),
+        lastChirp:0};
+  }catch(e){ AU=null; }
+}
+function chirp(freq,dur,gain){         // one-shot on the AudioContext clock
+  if(!AU||AU.voices>=8) return;        // strict voice budget (dog#E6)
+  try{
+    const t0=AU.ctx.currentTime+0.05;  // scheduled, never setTimeout (shadow#E1)
+    const o=AU.ctx.createOscillator(), g=AU.ctx.createGain();
+    o.frequency.value=freq; o.type='sine';
+    g.gain.setValueAtTime(0,t0);
+    g.gain.linearRampToValueAtTime(gain,t0+dur*0.2);
+    g.gain.linearRampToValueAtTime(0,t0+dur);
+    o.connect(g); g.connect(AU.master);
+    AU.voices++;
+    o.onended=()=>{ try{o.disconnect();g.disconnect();}catch(e){} AU.voices--; };
+    o.start(t0); o.stop(t0+dur+0.02);
+  }catch(e){}
+}
+function stepAudio(){
+  if(!AU) return;
+  try{
+    AU.master.gain.value = soundOn?0.5:0;
+    if(!soundOn) return;
+    const wx=weather();
+    const burning=world.trees.reduce((n,t)=>n+(t.state==='burning'),0);
+    AU.rain.gain.value = wx==='clear'?0 : (wx==='storm'?0.16:0.10);
+    AU.fire.gain.value = Math.min(0.22, burning*0.022)
+                         * (0.7+0.3*Math.sin(frame/4));      // crackle flutter
+    if(frame-AU.lastChirp>140 && h(dayIndex(),frame,55)<0.3){
+      AU.lastChirp=frame;
+      if(isNight()) chirp(4200+h(frame,56)*600,0.09,0.05);          // crickets
+      else if(wx==='clear') chirp(1800+h(frame,57)*1400,0.16,0.045); // birds
+    }
+  }catch(e){}
+}
+
 function draw(){
-  const p=dayPhase();
-  // ground
+  const p=dayPhase(), wx=weather();
   cx.fillStyle='#0e3520';cx.fillRect(0,0,W,H);
-  // pond
-  const pd=world.pond;
-  cx.fillStyle='#1b4a6b';cx.beginPath();cx.ellipse(pd.x,pd.y,pd.r,pd.r*.72,0,0,7);cx.fill();
+  const pd=world.pond, swell=wx==='clear'?0:3;
+  cx.fillStyle='#1b4a6b';cx.beginPath();
+  cx.ellipse(pd.x,pd.y,pd.r+swell,(pd.r+swell)*.72,0,0,7);cx.fill();
   cx.fillStyle='#2a6d94';cx.beginPath();
   cx.ellipse(pd.x,pd.y,pd.r*.8,pd.r*.55,0,0,7);cx.fill();
-  // flowers
   for(const f of world.flowers){
+    if(f.eaten>1600) continue;                       // freshly eaten: gone
+    if(f.eaten>0){ cx.fillStyle='#3f6b4a';           // regrowing nub
+      cx.fillRect(f.x+1,f.y+1,2,2); continue; }
     cx.fillStyle=f.h<.5?'#e8b4d8':'#f2e28a';
     cx.fillRect(f.x,f.y+Math.sin(frame/40+f.x)*1.2,3,3);
   }
-  // trees
   for(const t of world.trees){
-    const sway=Math.sin(frame/55+t.sway)*1.5;
+    const sway=Math.sin(frame/55+t.sway)*(wx==='storm'?3.2:1.5);
     if(t.state==='alive'){
       cx.fillStyle='#4a2f1d';cx.fillRect(t.x-2,t.y,4,10);
       cx.fillStyle='#1f6b38';cx.beginPath();cx.arc(t.x+sway,t.y-6,t.r,0,7);cx.fill();
@@ -215,13 +321,12 @@ function draw(){
       cx.beginPath();cx.arc(t.x+Math.sin(frame/9)*4,t.y-26-(frame%40)/2.5,5,0,7);cx.fill();
     } else if(t.state==='stump'){
       cx.fillStyle='#332420';cx.fillRect(t.x-3,t.y+2,6,7);
-    } else { // sprout
+    } else {
       cx.fillStyle='#4a2f1d';cx.fillRect(t.x-1,t.y+4,2,6);
       cx.fillStyle='#3fae5f';cx.beginPath();
-      cx.arc(t.x,t.y+2,2+ (t.burn/600)*t.r,0,7);cx.fill();
+      cx.arc(t.x,t.y+2,2+(t.burn/600)*t.r,0,7);cx.fill();
     }
   }
-  // critters
   for(const c of world.critters){
     const asleep=c.mood==='sleep';
     cx.fillStyle=`hsl(${c.hue} 60% ${asleep?38:62}%)`;
@@ -233,47 +338,91 @@ function draw(){
     if(c.mood==='flee'){cx.fillStyle='#fff';cx.font='10px sans-serif';cx.fillText('!',c.x-1,c.y-11);}
     if(asleep&&frame%90<45){cx.fillStyle='#aab';cx.font='9px sans-serif';cx.fillText('z',c.x+8,c.y-8);}
   }
-  // day/night tint
+  // rain
+  if(wx!=='clear'){
+    cx.strokeStyle='rgba(170,200,255,.35)';cx.lineWidth=1;cx.beginPath();
+    const n=wx==='storm'?120:60;
+    for(let i=0;i<n;i++){
+      const rx=((i*97+frame*7)%(W+40))-20, ry=(i*53+frame*11)%H;
+      cx.moveTo(rx,ry);cx.lineTo(rx-3,ry+9);
+    }
+    cx.stroke();
+  }
+  // lightning bolts
+  for(const b of bolts){
+    cx.strokeStyle=`rgba(255,255,220,${b.ttl/14})`;cx.lineWidth=2;cx.beginPath();
+    let x=b.x,y=0;cx.moveTo(x,y);
+    while(y<b.y){y+=28;x+=Math.sin(y*7+b.x)*14;cx.lineTo(x,y);}
+    cx.lineTo(b.x,b.y);cx.stroke();
+    if(b.ttl>10){cx.fillStyle=`rgba(255,255,255,${(b.ttl-10)/12})`;cx.fillRect(0,0,W,H);}
+  }
+  // night: tint, stars, moon, fireflies
   const night=Math.max(0,Math.sin((p-0.5)*Math.PI*2));
-  if(night>0){cx.fillStyle=`rgba(8,10,40,${night*.45})`;cx.fillRect(0,0,W,H);}
-  // dawn/dusk warmth
+  if(night>0){
+    cx.fillStyle=`rgba(8,10,40,${night*.45})`;cx.fillRect(0,0,W,H);
+    for(const s of world.stars){
+      cx.fillStyle=`rgba(255,255,240,${night*(0.4+0.4*Math.sin(frame/30+s.tw))})`;
+      cx.fillRect(s.x,s.y,1.6,1.6);
+    }
+    cx.fillStyle=`rgba(235,235,215,${night*.9})`;
+    cx.beginPath();cx.arc(W-90,70,17,0,7);cx.fill();
+    cx.fillStyle=`rgba(8,10,40,${night*.5})`;
+    cx.beginPath();cx.arc(W-97,66,15,0,7);cx.fill();
+    if(wx==='clear') for(let i=0;i<12;i++){       // fireflies: pure functions
+      const fx=(W/12)*i+Math.sin(frame/70+i*2.4)*46;
+      const fy=H*0.55+Math.cos(frame/57+i*1.7)*72;
+      cx.fillStyle=`rgba(210,255,120,${night*(0.35+0.5*Math.sin(frame/11+i*3))})`;
+      cx.beginPath();cx.arc(fx,fy,1.8,0,7);cx.fill();
+    }
+  }
   const edge=Math.max(0,Math.sin(p*Math.PI*2))*0.12;
   if(edge>0){cx.fillStyle=`rgba(255,140,60,${edge})`;cx.fillRect(0,0,W,H);}
 }
 
 function hud(){
   document.getElementById('seed').textContent=world.seed;
-  document.getElementById('day').textContent=1+Math.floor(frame/5400);
+  document.getElementById('day').textContent=1+dayIndex();
+  document.getElementById('sky').textContent=weather();
   const alive=world.trees.filter(t=>t.state==='alive'||t.state==='sprout').length;
   const burning=world.trees.filter(t=>t.state==='burning').length;
   document.getElementById('trees').textContent=alive+'/'+world.trees.length;
   document.getElementById('burning').textContent=burning;
-  document.getElementById('fires').textContent=firesSurvived;
+  document.getElementById('fires').textContent=
+    firesSurvived+(wildFires?' ('+wildFires+' wild)':'');
 }
 
 function tick(){
   frame++;
   stepFire();
   stepCritters();
+  stepAudio();          // reads sim, never writes it
   draw();
   if(frame%15===0)hud();
   requestAnimationFrame(tick);
 }
 
 function boot(seed){
-  SEED=seed; world=makeWorld(seed); frame=0;
+  SEED=seed; world=makeWorld(seed); frame=0; bolts=[];
   history.replaceState(null,'','?seed='+seed);
   hud();
 }
 
 cv.addEventListener('click',e=>{
   const r=cv.getBoundingClientRect();
-  ignite((e.clientX-r.left)*(W/r.width),(e.clientY-r.top)*(H/r.height));
+  ignite((e.clientX-r.left)*(W/r.width),(e.clientY-r.top)*(H/r.height),10,false);
 });
 document.getElementById('new').onclick=()=>boot(SEED+1);
+document.getElementById('sound').onclick=function(){
+  initAudio();                       // the user gesture is the init (test#E9)
+  soundOn=!soundOn;
+  this.setAttribute('aria-pressed',String(soundOn));
+  this.textContent='sound: '+(soundOn?'on':'off');
+};
 
-// test hook — lets a harness poke the sim without simulating input
-window.EMBER={ignite,get world(){return world;},get frame(){return frame;},
+// test hook — sim only (no draw, no audio), so a harness can fast-forward
+window.EMBER={ignite:(x,y)=>ignite(x,y,10,false),
+  get world(){return world;},get frame(){return frame;},
+  get weather(){return weather();},get wild(){return wildFires;},
   step(){frame++;stepFire();stepCritters();}};
 
 boot(SEED);
