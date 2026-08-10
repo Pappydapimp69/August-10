@@ -1,0 +1,4 @@
+# Brain cognitive-system private local store (per-machine, not shared)
+.brain/
+__pycache__/
+*.pyc

@@ -1,0 +1,484 @@
+<!doctype html>
+<html lang="en"><head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>gossip — the co-verification graph as a social network</title>
+<style>
+  :root { color-scheme: dark; --bg:#1a1b26; --panel:#1f2335; --ink:#c0caf5;
+           --dim:#7f88b0; --line:#2f3549; --accent:#7aa2f7; }
+  * { box-sizing:border-box; }
+  body { margin:0; background:var(--bg); color:var(--ink);
+         font:15px/1.6 ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif; }
+  .wrap { max-width:1180px; margin:0 auto; padding:2.5rem 1.25rem 4rem; }
+  h1 { font-size:1.9rem; margin:0 0 .3rem; letter-spacing:-.02em; }
+  h2 { font-size:1.1rem; margin:2.5rem 0 .75rem; color:var(--accent);
+        font-weight:600; }
+  .sub { color:var(--dim); margin:0 0 2rem; }
+  .stats { display:grid; grid-template-columns:repeat(auto-fit,minmax(140px,1fr));
+            gap:.75rem; margin-bottom:2rem; }
+  .stat { background:var(--panel); border:1px solid var(--line); border-radius:9px;
+           padding:.85rem 1rem; }
+  .stat b { display:block; font-size:1.5rem; line-height:1.2; }
+  .stat span { color:var(--dim); font-size:.82rem; }
+  figure { margin:0; background:var(--panel); border:1px solid var(--line);
+            border-radius:11px; padding:.5rem; }
+  svg { width:100%; height:auto; display:block; }
+  figcaption { color:var(--dim); font-size:.85rem; padding:.6rem .9rem 0; }
+  .scroll { overflow-x:auto; }
+  table { width:100%; border-collapse:collapse; font-size:.88rem;
+           min-width:520px; }
+  th,td { text-align:left; padding:.45rem .7rem; border-bottom:1px solid var(--line); }
+  th { color:var(--dim); font-weight:600; font-size:.78rem;
+        text-transform:uppercase; letter-spacing:.05em; }
+  td:first-child { font-variant-numeric:tabular-nums; color:var(--accent); }
+  .bar { display:flex; height:26px; border-radius:6px; overflow:hidden;
+          margin:.5rem 0 .4rem; }
+  .bar i { display:block; }
+  .key { color:var(--dim); font-size:.85rem; }
+  details { background:var(--panel); border:1px solid var(--line);
+             border-radius:8px; padding:.6rem .9rem; margin-bottom:.5rem; }
+  summary { cursor:pointer; }
+  summary i { display:inline-block; width:10px; height:10px; border-radius:3px;
+               margin-right:.5rem; }
+  code { background:#171822; border:1px solid var(--line); border-radius:4px;
+          padding:.05rem .35rem; font-size:.83em; }
+  p { max-width:70ch; }
+  footer { margin-top:3rem; padding-top:1.25rem; border-top:1px solid var(--line);
+            color:var(--dim); font-size:.85rem; }
+  a { color:var(--accent); }
+</style>
+</head><body><div class="wrap">
+
+<h1>gossip</h1>
+<p class="sub">Brain&rsquo;s co-verification graph, read as a social network.
+Every figure recomputed from canon &middot; as of 2026-08-05.</p>
+
+<div class="stats"><div class="stat"><b>573</b><span>lessons</span></div><div class="stat"><b>125</b><span>systems</span></div><div class="stat"><b>253</b><span>confident edges</span></div><div class="stat"><b>47</b><span>vetoed (T26)</span></div><div class="stat"><b>13</b><span>communities</span></div><div class="stat"><b>0.442</b><span>modularity Q</span></div></div>
+
+<figure>
+<svg viewBox="0 0 1200 900" role="img" aria-label="co-verification graph by community">
+<line x1="758.0" y1="126.0" x2="640.9" y2="-26.6" stroke="#7aa2f7" stroke-width="0.81" stroke-opacity="0.22" stroke-dasharray="4 3"/>
+<line x1="600.0" y1="27.0" x2="694.1" y2="815.5" stroke="#565f89" stroke-width="1.92" stroke-opacity="0.43"/>
+<line x1="600.0" y1="27.0" x2="337.1" y2="692.5" stroke="#565f89" stroke-width="1.92" stroke-opacity="0.43"/>
+<line x1="600.0" y1="27.0" x2="849.7" y2="207.2" stroke="#565f89" stroke-width="1.28" stroke-opacity="0.31"/>
+<line x1="600.0" y1="27.0" x2="711.7" y2="237.7" stroke="#565f89" stroke-width="1.45" stroke-opacity="0.34"/>
+<line x1="600.0" y1="27.0" x2="634.3" y2="733.1" stroke="#565f89" stroke-width="1.66" stroke-opacity="0.38"/>
+<line x1="600.0" y1="27.0" x2="241.4" y2="410.9" stroke="#565f89" stroke-width="1.28" stroke-opacity="0.31"/>
+<line x1="600.0" y1="27.0" x2="447.4" y2="166.9" stroke="#565f89" stroke-width="1.45" stroke-opacity="0.34"/>
+<line x1="600.0" y1="27.0" x2="177.0" y2="450.0" stroke="#565f89" stroke-width="1.45" stroke-opacity="0.34"/>
+<line x1="600.0" y1="27.0" x2="696.3" y2="69.1" stroke="#565f89" stroke-width="1.28" stroke-opacity="0.31"/>
+<line x1="600.0" y1="27.0" x2="640.9" y2="-26.6" stroke="#565f89" stroke-width="1.45" stroke-opacity="0.34"/>
+<line x1="991.6" y1="410.9" x2="634.3" y2="733.1" stroke="#565f89" stroke-width="1.66" stroke-opacity="0.38"/>
+<line x1="991.6" y1="410.9" x2="315.4" y2="410.9" stroke="#565f89" stroke-width="1.49" stroke-opacity="0.35"/>
+<line x1="991.6" y1="410.9" x2="1023.0" y2="450.0" stroke="#565f89" stroke-width="1.28" stroke-opacity="0.31"/>
+<line x1="991.6" y1="410.9" x2="971.1" y2="460.4" stroke="#9ece6a" stroke-width="1.28" stroke-opacity="0.31"/>
+<line x1="991.6" y1="410.9" x2="241.4" y2="410.9" stroke="#565f89" stroke-width="1.32" stroke-opacity="0.32"/>
+<line x1="991.6" y1="410.9" x2="921.6" y2="480.9" stroke="#9ece6a" stroke-width="1.28" stroke-opacity="0.31"/>
+<line x1="991.6" y1="410.9" x2="967.4" y2="564.9" stroke="#565f89" stroke-width="1.28" stroke-opacity="0.31"/>
+<line x1="991.6" y1="410.9" x2="447.4" y2="85.1" stroke="#565f89" stroke-width="1.28" stroke-opacity="0.31"/>
+<line x1="991.6" y1="410.9" x2="872.1" y2="460.4" stroke="#9ece6a" stroke-width="1.60" stroke-opacity="0.37"/>
+<line x1="991.6" y1="410.9" x2="851.6" y2="410.9" stroke="#9ece6a" stroke-width="1.28" stroke-opacity="0.31"/>
+<line x1="991.6" y1="410.9" x2="872.1" y2="361.4" stroke="#9ece6a" stroke-width="1.28" stroke-opacity="0.31"/>
+<line x1="991.6" y1="410.9" x2="844.8" y2="536.9" stroke="#565f89" stroke-width="1.28" stroke-opacity="0.31"/>
+<line x1="991.6" y1="410.9" x2="921.6" y2="340.9" stroke="#9ece6a" stroke-width="2.34" stroke-opacity="0.51"/>
+<line x1="991.6" y1="410.9" x2="971.1" y2="361.4" stroke="#9ece6a" stroke-width="1.28" stroke-opacity="0.31"/>
+<line x1="991.6" y1="410.9" x2="849.7" y2="119.0" stroke="#565f89" stroke-width="1.28" stroke-opacity="0.31"/>
+<line x1="991.6" y1="410.9" x2="736.8" y2="47.0" stroke="#565f89" stroke-width="1.28" stroke-opacity="0.31"/>
+<line x1="731.0" y1="764.6" x2="339.6" y2="564.9" stroke="#565f89" stroke-width="1.32" stroke-opacity="0.32"/>
+<line x1="731.0" y1="764.6" x2="634.3" y2="733.1" stroke="#73daca" stroke-width="1.66" stroke-opacity="0.38"/>
+<line x1="731.0" y1="764.6" x2="921.6" y2="340.9" stroke="#565f89" stroke-width="1.28" stroke-opacity="0.31"/>
+<line x1="433.1" y1="692.5" x2="385.1" y2="740.5" stroke="#ff9e64" stroke-width="1.39" stroke-opacity="0.33"/>
+<line x1="433.1" y1="692.5" x2="337.1" y2="692.5" stroke="#ff9e64" stroke-width="1.80" stroke-opacity="0.41"/>
+<line x1="433.1" y1="692.5" x2="385.1" y2="644.5" stroke="#ff9e64" stroke-width="1.36" stroke-opacity="0.33"/>
+<line x1="694.1" y1="815.5" x2="337.1" y2="692.5" stroke="#565f89" stroke-width="1.45" stroke-opacity="0.34"/>
+<line x1="694.1" y1="815.5" x2="634.3" y2="733.1" stroke="#73daca" stroke-width="1.92" stroke-opacity="0.43"/>
+<line x1="752.6" y1="166.9" x2="521.0" y2="-10.8" stroke="#7aa2f7" stroke-width="1.45" stroke-opacity="0.34"/>
+<line x1="752.6" y1="166.9" x2="739.2" y2="55.2" stroke="#565f89" stroke-width="1.14" stroke-opacity="0.28"/>
+<line x1="752.6" y1="166.9" x2="640.9" y2="-26.6" stroke="#7aa2f7" stroke-width="1.14" stroke-opacity="0.28"/>
+<line x1="385.1" y1="740.5" x2="337.1" y2="692.5" stroke="#ff9e64" stroke-width="1.92" stroke-opacity="0.43"/>
+<line x1="859.1" y1="163.1" x2="849.7" y2="207.2" stroke="#bb9af7" stroke-width="1.32" stroke-opacity="0.32"/>
+<line x1="859.1" y1="163.1" x2="849.7" y2="119.0" stroke="#bb9af7" stroke-width="1.56" stroke-opacity="0.36"/>
+<line x1="736.8" y1="205.0" x2="177.0" y2="450.0" stroke="#565f89" stroke-width="1.29" stroke-opacity="0.31"/>
+<line x1="736.8" y1="205.0" x2="521.0" y2="-10.8" stroke="#7aa2f7" stroke-width="1.68" stroke-opacity="0.39"/>
+<line x1="736.8" y1="205.0" x2="711.7" y2="14.3" stroke="#7aa2f7" stroke-width="1.28" stroke-opacity="0.31"/>
+<line x1="337.1" y1="692.5" x2="339.6" y2="564.9" stroke="#565f89" stroke-width="1.73" stroke-opacity="0.40"/>
+<line x1="337.1" y1="692.5" x2="275.8" y2="528.1" stroke="#565f89" stroke-width="1.66" stroke-opacity="0.38"/>
+<line x1="337.1" y1="692.5" x2="385.1" y2="644.5" stroke="#ff9e64" stroke-width="1.36" stroke-opacity="0.33"/>
+<line x1="337.1" y1="692.5" x2="177.0" y2="450.0" stroke="#565f89" stroke-width="1.45" stroke-opacity="0.34"/>
+<line x1="339.6" y1="564.9" x2="634.3" y2="733.1" stroke="#565f89" stroke-width="1.28" stroke-opacity="0.31"/>
+<line x1="339.6" y1="564.9" x2="275.8" y2="601.7" stroke="#b4f9f8" stroke-width="1.28" stroke-opacity="0.31"/>
+<line x1="339.6" y1="564.9" x2="275.8" y2="528.1" stroke="#b4f9f8" stroke-width="1.66" stroke-opacity="0.38"/>
+<line x1="339.6" y1="564.9" x2="370.4" y2="265.9" stroke="#565f89" stroke-width="1.32" stroke-opacity="0.32"/>
+<line x1="339.6" y1="564.9" x2="296.4" y2="265.9" stroke="#565f89" stroke-width="1.37" stroke-opacity="0.33"/>
+<line x1="339.6" y1="564.9" x2="921.6" y2="340.9" stroke="#565f89" stroke-width="1.32" stroke-opacity="0.32"/>
+<line x1="849.7" y1="207.2" x2="696.3" y2="69.1" stroke="#bb9af7" stroke-width="1.98" stroke-opacity="0.44"/>
+<line x1="849.7" y1="207.2" x2="823.2" y2="82.5" stroke="#bb9af7" stroke-width="1.37" stroke-opacity="0.33"/>
+<line x1="849.7" y1="207.2" x2="849.7" y2="119.0" stroke="#bb9af7" stroke-width="1.32" stroke-opacity="0.32"/>
+<line x1="849.7" y1="207.2" x2="736.8" y2="47.0" stroke="#565f89" stroke-width="1.28" stroke-opacity="0.31"/>
+<line x1="634.3" y1="796.0" x2="634.3" y2="733.1" stroke="#73daca" stroke-width="1.32" stroke-opacity="0.32"/>
+<line x1="634.3" y1="796.0" x2="849.7" y2="119.0" stroke="#565f89" stroke-width="1.28" stroke-opacity="0.31"/>
+<line x1="711.7" y1="237.7" x2="447.4" y2="166.9" stroke="#7aa2f7" stroke-width="1.45" stroke-opacity="0.34"/>
+<line x1="711.7" y1="237.7" x2="640.9" y2="-26.6" stroke="#7aa2f7" stroke-width="1.45" stroke-opacity="0.34"/>
+<line x1="873.9" y1="692.5" x2="755.9" y2="692.5" stroke="#f7768e" stroke-width="1.28" stroke-opacity="0.31"/>
+<line x1="873.9" y1="692.5" x2="844.4" y2="641.4" stroke="#f7768e" stroke-width="1.19" stroke-opacity="0.29"/>
+<line x1="634.3" y1="733.1" x2="942.1" y2="265.9" stroke="#565f89" stroke-width="1.28" stroke-opacity="0.31"/>
+<line x1="634.3" y1="733.1" x2="576.0" y2="764.6" stroke="#565f89" stroke-width="1.28" stroke-opacity="0.31"/>
+<line x1="634.3" y1="733.1" x2="315.4" y2="410.9" stroke="#565f89" stroke-width="1.28" stroke-opacity="0.31"/>
+<line x1="634.3" y1="733.1" x2="784.1" y2="266.3" stroke="#565f89" stroke-width="1.28" stroke-opacity="0.31"/>
+<line x1="634.3" y1="733.1" x2="1023.0" y2="450.0" stroke="#565f89" stroke-width="1.28" stroke-opacity="0.31"/>
+<line x1="634.3" y1="733.1" x2="971.1" y2="460.4" stroke="#565f89" stroke-width="1.28" stroke-opacity="0.31"/>
+<line x1="634.3" y1="733.1" x2="241.4" y2="410.9" stroke="#565f89" stroke-width="1.28" stroke-opacity="0.31"/>
+<line x1="634.3" y1="733.1" x2="694.1" y2="713.7" stroke="#73daca" stroke-width="1.28" stroke-opacity="0.31"/>
+<line x1="634.3" y1="733.1" x2="696.3" y2="257.1" stroke="#565f89" stroke-width="1.79" stroke-opacity="0.41"/>
+<line x1="634.3" y1="733.1" x2="479.2" y2="733.1" stroke="#565f89" stroke-width="1.28" stroke-opacity="0.31"/>
+<line x1="634.3" y1="733.1" x2="921.6" y2="340.9" stroke="#565f89" stroke-width="1.28" stroke-opacity="0.31"/>
+<line x1="634.3" y1="733.1" x2="600.0" y2="873.0" stroke="#565f89" stroke-width="1.28" stroke-opacity="0.31"/>
+<line x1="634.3" y1="733.1" x2="696.3" y2="69.1" stroke="#565f89" stroke-width="1.28" stroke-opacity="0.31"/>
+<line x1="634.3" y1="733.1" x2="784.1" y2="59.9" stroke="#565f89" stroke-width="1.28" stroke-opacity="0.31"/>
+<line x1="634.3" y1="733.1" x2="640.9" y2="-26.6" stroke="#565f89" stroke-width="1.28" stroke-opacity="0.31"/>
+<line x1="634.3" y1="733.1" x2="849.7" y2="119.0" stroke="#565f89" stroke-width="1.79" stroke-opacity="0.41"/>
+<line x1="942.1" y1="265.9" x2="924.5" y2="314.5" stroke="#7dcfff" stroke-width="1.28" stroke-opacity="0.31"/>
+<line x1="942.1" y1="265.9" x2="879.8" y2="340.3" stroke="#7dcfff" stroke-width="1.28" stroke-opacity="0.31"/>
+<line x1="942.1" y1="265.9" x2="795.7" y2="240.1" stroke="#7dcfff" stroke-width="1.41" stroke-opacity="0.34"/>
+<line x1="942.1" y1="265.9" x2="696.3" y2="69.1" stroke="#565f89" stroke-width="1.41" stroke-opacity="0.34"/>
+<line x1="924.5" y1="314.5" x2="241.4" y2="410.9" stroke="#565f89" stroke-width="1.28" stroke-opacity="0.31"/>
+<line x1="924.5" y1="314.5" x2="795.7" y2="240.1" stroke="#7dcfff" stroke-width="1.28" stroke-opacity="0.31"/>
+<line x1="679.0" y1="262.8" x2="521.0" y2="-10.8" stroke="#7aa2f7" stroke-width="1.28" stroke-opacity="0.31"/>
+<line x1="679.0" y1="262.8" x2="736.8" y2="47.0" stroke="#7aa2f7" stroke-width="1.28" stroke-opacity="0.31"/>
+<line x1="275.8" y1="601.7" x2="275.8" y2="528.1" stroke="#b4f9f8" stroke-width="1.28" stroke-opacity="0.31"/>
+<line x1="576.0" y1="764.6" x2="696.3" y2="257.1" stroke="#565f89" stroke-width="1.70" stroke-opacity="0.39"/>
+<line x1="576.0" y1="764.6" x2="539.0" y2="815.5" stroke="#c0caf5" stroke-width="1.45" stroke-opacity="0.34"/>
+<line x1="576.0" y1="764.6" x2="479.2" y2="796.0" stroke="#c0caf5" stroke-width="1.30" stroke-opacity="0.31"/>
+<line x1="576.0" y1="764.6" x2="479.2" y2="733.1" stroke="#c0caf5" stroke-width="2.00" stroke-opacity="0.45"/>
+<line x1="576.0" y1="764.6" x2="539.0" y2="713.7" stroke="#c0caf5" stroke-width="1.45" stroke-opacity="0.34"/>
+<line x1="576.0" y1="764.6" x2="696.3" y2="69.1" stroke="#565f89" stroke-width="1.30" stroke-opacity="0.31"/>
+<line x1="576.0" y1="764.6" x2="739.2" y2="55.2" stroke="#565f89" stroke-width="1.30" stroke-opacity="0.31"/>
+<line x1="576.0" y1="764.6" x2="849.7" y2="119.0" stroke="#565f89" stroke-width="1.28" stroke-opacity="0.31"/>
+<line x1="640.9" y1="278.6" x2="521.0" y2="-10.8" stroke="#7aa2f7" stroke-width="1.28" stroke-opacity="0.31"/>
+<line x1="640.9" y1="278.6" x2="736.8" y2="47.0" stroke="#7aa2f7" stroke-width="1.28" stroke-opacity="0.31"/>
+<line x1="315.4" y1="410.9" x2="241.4" y2="410.9" stroke="#a9b1d6" stroke-width="1.28" stroke-opacity="0.31"/>
+<line x1="315.4" y1="410.9" x2="921.6" y2="340.9" stroke="#565f89" stroke-width="1.28" stroke-opacity="0.31"/>
+<line x1="315.4" y1="410.9" x2="600.0" y2="873.0" stroke="#565f89" stroke-width="1.28" stroke-opacity="0.31"/>
+<line x1="315.4" y1="410.9" x2="711.7" y2="14.3" stroke="#565f89" stroke-width="1.28" stroke-opacity="0.31"/>
+<line x1="600.0" y1="284.0" x2="640.9" y2="-26.6" stroke="#7aa2f7" stroke-width="1.28" stroke-opacity="0.31"/>
+<line x1="559.1" y1="278.6" x2="600.0" y2="-32.0" stroke="#7aa2f7" stroke-width="1.54" stroke-opacity="0.36"/>
+<line x1="559.1" y1="278.6" x2="640.9" y2="-26.6" stroke="#7aa2f7" stroke-width="1.54" stroke-opacity="0.36"/>
+<line x1="521.0" y1="262.8" x2="600.0" y2="-32.0" stroke="#7aa2f7" stroke-width="1.52" stroke-opacity="0.36"/>
+<line x1="521.0" y1="262.8" x2="823.2" y2="82.5" stroke="#565f89" stroke-width="1.52" stroke-opacity="0.36"/>
+<line x1="844.4" y1="743.6" x2="785.4" y2="743.6" stroke="#f7768e" stroke-width="1.28" stroke-opacity="0.31"/>
+<line x1="844.4" y1="743.6" x2="755.9" y2="692.5" stroke="#f7768e" stroke-width="1.28" stroke-opacity="0.31"/>
+<line x1="844.4" y1="743.6" x2="785.4" y2="641.4" stroke="#f7768e" stroke-width="1.28" stroke-opacity="0.31"/>
+<line x1="844.4" y1="743.6" x2="844.4" y2="641.4" stroke="#f7768e" stroke-width="1.28" stroke-opacity="0.31"/>
+<line x1="785.4" y1="743.6" x2="755.9" y2="692.5" stroke="#f7768e" stroke-width="1.66" stroke-opacity="0.38"/>
+<line x1="785.4" y1="743.6" x2="785.4" y2="641.4" stroke="#f7768e" stroke-width="1.73" stroke-opacity="0.40"/>
+<line x1="785.4" y1="743.6" x2="844.4" y2="641.4" stroke="#f7768e" stroke-width="1.66" stroke-opacity="0.38"/>
+<line x1="488.3" y1="237.7" x2="521.0" y2="-10.8" stroke="#7aa2f7" stroke-width="1.28" stroke-opacity="0.31"/>
+<line x1="488.3" y1="237.7" x2="711.7" y2="14.3" stroke="#7aa2f7" stroke-width="1.28" stroke-opacity="0.31"/>
+<line x1="823.2" y1="243.7" x2="849.7" y2="119.0" stroke="#bb9af7" stroke-width="1.28" stroke-opacity="0.31"/>
+<line x1="823.2" y1="243.7" x2="736.8" y2="47.0" stroke="#565f89" stroke-width="1.28" stroke-opacity="0.31"/>
+<line x1="784.1" y1="266.3" x2="696.3" y2="257.1" stroke="#bb9af7" stroke-width="1.31" stroke-opacity="0.32"/>
+<line x1="784.1" y1="266.3" x2="849.7" y2="119.0" stroke="#bb9af7" stroke-width="1.31" stroke-opacity="0.32"/>
+<line x1="971.1" y1="460.4" x2="921.6" y2="340.9" stroke="#9ece6a" stroke-width="1.07" stroke-opacity="0.27"/>
+<line x1="241.4" y1="410.9" x2="447.4" y2="166.9" stroke="#565f89" stroke-width="1.28" stroke-opacity="0.31"/>
+<line x1="241.4" y1="410.9" x2="879.8" y2="340.3" stroke="#565f89" stroke-width="1.28" stroke-opacity="0.31"/>
+<line x1="241.4" y1="410.9" x2="479.2" y2="796.0" stroke="#565f89" stroke-width="1.28" stroke-opacity="0.31"/>
+<line x1="241.4" y1="410.9" x2="872.1" y2="460.4" stroke="#565f89" stroke-width="1.07" stroke-opacity="0.27"/>
+<line x1="241.4" y1="410.9" x2="872.1" y2="361.4" stroke="#565f89" stroke-width="1.28" stroke-opacity="0.31"/>
+<line x1="241.4" y1="410.9" x2="921.6" y2="340.9" stroke="#565f89" stroke-width="1.07" stroke-opacity="0.27"/>
+<line x1="463.2" y1="205.0" x2="521.0" y2="-10.8" stroke="#7aa2f7" stroke-width="1.28" stroke-opacity="0.31"/>
+<line x1="463.2" y1="205.0" x2="736.8" y2="47.0" stroke="#7aa2f7" stroke-width="1.28" stroke-opacity="0.31"/>
+<line x1="447.4" y1="166.9" x2="879.8" y2="340.3" stroke="#565f89" stroke-width="1.28" stroke-opacity="0.31"/>
+<line x1="447.4" y1="166.9" x2="640.9" y2="-26.6" stroke="#7aa2f7" stroke-width="1.45" stroke-opacity="0.34"/>
+<line x1="447.4" y1="166.9" x2="679.0" y2="-10.8" stroke="#7aa2f7" stroke-width="1.28" stroke-opacity="0.31"/>
+<line x1="447.4" y1="166.9" x2="736.8" y2="47.0" stroke="#7aa2f7" stroke-width="1.28" stroke-opacity="0.31"/>
+<line x1="442.0" y1="126.0" x2="521.0" y2="-10.8" stroke="#7aa2f7" stroke-width="1.28" stroke-opacity="0.31"/>
+<line x1="442.0" y1="126.0" x2="849.7" y2="119.0" stroke="#565f89" stroke-width="1.28" stroke-opacity="0.31"/>
+<line x1="879.8" y1="340.3" x2="828.9" y2="331.3" stroke="#7dcfff" stroke-width="1.28" stroke-opacity="0.31"/>
+<line x1="879.8" y1="340.3" x2="795.7" y2="291.8" stroke="#7dcfff" stroke-width="1.37" stroke-opacity="0.33"/>
+<line x1="879.8" y1="340.3" x2="795.7" y2="240.1" stroke="#7dcfff" stroke-width="1.66" stroke-opacity="0.38"/>
+<line x1="879.8" y1="340.3" x2="828.9" y2="200.6" stroke="#7dcfff" stroke-width="1.28" stroke-opacity="0.31"/>
+<line x1="879.8" y1="340.3" x2="879.8" y2="191.6" stroke="#7dcfff" stroke-width="1.28" stroke-opacity="0.31"/>
+<line x1="879.8" y1="340.3" x2="924.5" y2="217.4" stroke="#7dcfff" stroke-width="1.41" stroke-opacity="0.34"/>
+<line x1="879.8" y1="340.3" x2="849.7" y2="119.0" stroke="#565f89" stroke-width="1.28" stroke-opacity="0.31"/>
+<line x1="879.8" y1="340.3" x2="711.7" y2="14.3" stroke="#565f89" stroke-width="1.28" stroke-opacity="0.31"/>
+<line x1="739.2" y1="271.0" x2="849.7" y2="119.0" stroke="#bb9af7" stroke-width="1.28" stroke-opacity="0.31"/>
+<line x1="739.2" y1="271.0" x2="736.8" y2="47.0" stroke="#565f89" stroke-width="1.28" stroke-opacity="0.31"/>
+<line x1="694.1" y1="713.7" x2="696.3" y2="257.1" stroke="#565f89" stroke-width="1.28" stroke-opacity="0.31"/>
+<line x1="921.6" y1="480.9" x2="971.1" y2="361.4" stroke="#9ece6a" stroke-width="1.28" stroke-opacity="0.31"/>
+<line x1="967.4" y1="564.9" x2="943.2" y2="615.3" stroke="#e0af68" stroke-width="1.37" stroke-opacity="0.33"/>
+<line x1="967.4" y1="564.9" x2="888.6" y2="627.8" stroke="#e0af68" stroke-width="1.28" stroke-opacity="0.31"/>
+<line x1="967.4" y1="564.9" x2="872.1" y2="361.4" stroke="#565f89" stroke-width="1.28" stroke-opacity="0.31"/>
+<line x1="967.4" y1="564.9" x2="844.8" y2="592.9" stroke="#e0af68" stroke-width="1.28" stroke-opacity="0.31"/>
+<line x1="967.4" y1="564.9" x2="844.8" y2="536.9" stroke="#e0af68" stroke-width="1.37" stroke-opacity="0.33"/>
+<line x1="967.4" y1="564.9" x2="888.6" y2="502.0" stroke="#e0af68" stroke-width="1.28" stroke-opacity="0.31"/>
+<line x1="828.9" y1="331.3" x2="795.7" y2="291.8" stroke="#7dcfff" stroke-width="1.28" stroke-opacity="0.31"/>
+<line x1="696.3" y1="257.1" x2="479.2" y2="796.0" stroke="#565f89" stroke-width="1.30" stroke-opacity="0.31"/>
+<line x1="696.3" y1="257.1" x2="479.2" y2="733.1" stroke="#565f89" stroke-width="1.66" stroke-opacity="0.38"/>
+<line x1="696.3" y1="257.1" x2="696.3" y2="69.1" stroke="#bb9af7" stroke-width="1.30" stroke-opacity="0.31"/>
+<line x1="696.3" y1="257.1" x2="739.2" y2="55.2" stroke="#bb9af7" stroke-width="1.30" stroke-opacity="0.31"/>
+<line x1="696.3" y1="257.1" x2="640.9" y2="-26.6" stroke="#565f89" stroke-width="1.31" stroke-opacity="0.32"/>
+<line x1="696.3" y1="257.1" x2="849.7" y2="119.0" stroke="#bb9af7" stroke-width="1.31" stroke-opacity="0.32"/>
+<line x1="696.3" y1="257.1" x2="711.7" y2="14.3" stroke="#565f89" stroke-width="1.28" stroke-opacity="0.31"/>
+<line x1="539.0" y1="815.5" x2="479.2" y2="796.0" stroke="#c0caf5" stroke-width="1.45" stroke-opacity="0.34"/>
+<line x1="539.0" y1="815.5" x2="479.2" y2="733.1" stroke="#c0caf5" stroke-width="1.50" stroke-opacity="0.35"/>
+<line x1="539.0" y1="815.5" x2="539.0" y2="713.7" stroke="#c0caf5" stroke-width="1.50" stroke-opacity="0.35"/>
+<line x1="539.0" y1="815.5" x2="696.3" y2="69.1" stroke="#565f89" stroke-width="1.16" stroke-opacity="0.29" stroke-dasharray="4 3"/>
+<line x1="539.0" y1="815.5" x2="640.9" y2="-26.6" stroke="#565f89" stroke-width="1.16" stroke-opacity="0.29" stroke-dasharray="4 3"/>
+<line x1="479.2" y1="796.0" x2="479.2" y2="733.1" stroke="#c0caf5" stroke-width="1.61" stroke-opacity="0.37"/>
+<line x1="479.2" y1="796.0" x2="539.0" y2="713.7" stroke="#c0caf5" stroke-width="1.61" stroke-opacity="0.37"/>
+<line x1="479.2" y1="796.0" x2="696.3" y2="69.1" stroke="#565f89" stroke-width="1.30" stroke-opacity="0.31"/>
+<line x1="479.2" y1="796.0" x2="739.2" y2="55.2" stroke="#565f89" stroke-width="1.30" stroke-opacity="0.31"/>
+<line x1="479.2" y1="796.0" x2="849.7" y2="119.0" stroke="#565f89" stroke-width="1.45" stroke-opacity="0.34"/>
+<line x1="755.9" y1="692.5" x2="785.4" y2="641.4" stroke="#f7768e" stroke-width="1.66" stroke-opacity="0.38"/>
+<line x1="755.9" y1="692.5" x2="844.4" y2="641.4" stroke="#f7768e" stroke-width="1.66" stroke-opacity="0.38"/>
+<line x1="447.4" y1="85.1" x2="785.4" y2="641.4" stroke="#565f89" stroke-width="1.57" stroke-opacity="0.37"/>
+<line x1="447.4" y1="85.1" x2="521.0" y2="-10.8" stroke="#7aa2f7" stroke-width="1.28" stroke-opacity="0.31"/>
+<line x1="447.4" y1="85.1" x2="600.0" y2="-32.0" stroke="#7aa2f7" stroke-width="1.57" stroke-opacity="0.37"/>
+<line x1="662.8" y1="226.9" x2="739.2" y2="55.2" stroke="#bb9af7" stroke-width="1.54" stroke-opacity="0.36"/>
+<line x1="662.8" y1="226.9" x2="600.0" y2="-32.0" stroke="#565f89" stroke-width="1.54" stroke-opacity="0.36"/>
+<line x1="795.7" y1="291.8" x2="879.8" y2="191.6" stroke="#7dcfff" stroke-width="1.28" stroke-opacity="0.31"/>
+<line x1="795.7" y1="291.8" x2="924.5" y2="217.4" stroke="#7dcfff" stroke-width="1.32" stroke-opacity="0.32"/>
+<line x1="370.4" y1="265.9" x2="296.4" y2="265.9" stroke="#ff75a0" stroke-width="1.49" stroke-opacity="0.35"/>
+<line x1="795.7" y1="240.1" x2="644.4" y2="185.7" stroke="#565f89" stroke-width="1.28" stroke-opacity="0.31"/>
+<line x1="795.7" y1="240.1" x2="924.5" y2="217.4" stroke="#7dcfff" stroke-width="1.28" stroke-opacity="0.31"/>
+<line x1="795.7" y1="240.1" x2="696.3" y2="69.1" stroke="#565f89" stroke-width="1.41" stroke-opacity="0.34"/>
+<line x1="943.2" y1="615.3" x2="844.8" y2="592.9" stroke="#e0af68" stroke-width="1.28" stroke-opacity="0.31"/>
+<line x1="943.2" y1="615.3" x2="844.8" y2="536.9" stroke="#e0af68" stroke-width="1.32" stroke-opacity="0.32"/>
+<line x1="943.2" y1="615.3" x2="888.6" y2="502.0" stroke="#e0af68" stroke-width="1.28" stroke-opacity="0.31"/>
+<line x1="872.1" y1="460.4" x2="872.1" y2="361.4" stroke="#9ece6a" stroke-width="1.28" stroke-opacity="0.31"/>
+<line x1="872.1" y1="460.4" x2="921.6" y2="340.9" stroke="#9ece6a" stroke-width="1.32" stroke-opacity="0.32"/>
+<line x1="872.1" y1="460.4" x2="711.7" y2="14.3" stroke="#565f89" stroke-width="1.28" stroke-opacity="0.31"/>
+<line x1="828.9" y1="200.6" x2="924.5" y2="217.4" stroke="#7dcfff" stroke-width="1.28" stroke-opacity="0.31"/>
+<line x1="785.4" y1="641.4" x2="844.4" y2="641.4" stroke="#f7768e" stroke-width="1.66" stroke-opacity="0.38"/>
+<line x1="785.4" y1="641.4" x2="600.0" y2="-32.0" stroke="#565f89" stroke-width="1.57" stroke-opacity="0.37"/>
+<line x1="479.2" y1="733.1" x2="539.0" y2="713.7" stroke="#c0caf5" stroke-width="1.61" stroke-opacity="0.37"/>
+<line x1="479.2" y1="733.1" x2="849.7" y2="119.0" stroke="#565f89" stroke-width="1.66" stroke-opacity="0.38"/>
+<line x1="872.1" y1="361.4" x2="921.6" y2="340.9" stroke="#9ece6a" stroke-width="1.28" stroke-opacity="0.31"/>
+<line x1="844.8" y1="536.9" x2="888.6" y2="502.0" stroke="#e0af68" stroke-width="1.28" stroke-opacity="0.31"/>
+<line x1="644.4" y1="185.7" x2="696.3" y2="69.1" stroke="#bb9af7" stroke-width="1.42" stroke-opacity="0.34"/>
+<line x1="644.4" y1="185.7" x2="521.0" y2="-10.8" stroke="#565f89" stroke-width="1.42" stroke-opacity="0.34"/>
+<line x1="879.8" y1="191.6" x2="924.5" y2="217.4" stroke="#7dcfff" stroke-width="1.28" stroke-opacity="0.31"/>
+<line x1="463.2" y1="47.0" x2="521.0" y2="-10.8" stroke="#7aa2f7" stroke-width="1.36" stroke-opacity="0.33"/>
+<line x1="463.2" y1="47.0" x2="640.9" y2="-26.6" stroke="#7aa2f7" stroke-width="1.36" stroke-opacity="0.33"/>
+<line x1="644.4" y1="140.6" x2="823.2" y2="82.5" stroke="#bb9af7" stroke-width="1.36" stroke-opacity="0.33"/>
+<line x1="644.4" y1="140.6" x2="849.7" y2="119.0" stroke="#bb9af7" stroke-width="1.36" stroke-opacity="0.33"/>
+<line x1="888.6" y1="502.0" x2="943.2" y2="514.5" stroke="#e0af68" stroke-width="1.28" stroke-opacity="0.31"/>
+<line x1="488.3" y1="14.3" x2="521.0" y2="-10.8" stroke="#7aa2f7" stroke-width="1.36" stroke-opacity="0.33"/>
+<line x1="488.3" y1="14.3" x2="739.2" y2="55.2" stroke="#565f89" stroke-width="1.36" stroke-opacity="0.33"/>
+<line x1="662.8" y1="99.3" x2="739.2" y2="55.2" stroke="#bb9af7" stroke-width="1.36" stroke-opacity="0.33"/>
+<line x1="662.8" y1="99.3" x2="823.2" y2="82.5" stroke="#bb9af7" stroke-width="1.36" stroke-opacity="0.33"/>
+<line x1="177.0" y1="450.0" x2="521.0" y2="-10.8" stroke="#565f89" stroke-width="1.29" stroke-opacity="0.31"/>
+<line x1="539.0" y1="713.7" x2="640.9" y2="-26.6" stroke="#565f89" stroke-width="1.45" stroke-opacity="0.34"/>
+<line x1="539.0" y1="713.7" x2="849.7" y2="119.0" stroke="#565f89" stroke-width="1.45" stroke-opacity="0.34"/>
+<line x1="696.3" y1="69.1" x2="521.0" y2="-10.8" stroke="#565f89" stroke-width="1.56" stroke-opacity="0.36"/>
+<line x1="696.3" y1="69.1" x2="739.2" y2="55.2" stroke="#bb9af7" stroke-width="1.30" stroke-opacity="0.31"/>
+<line x1="696.3" y1="69.1" x2="823.2" y2="82.5" stroke="#bb9af7" stroke-width="1.69" stroke-opacity="0.39"/>
+<line x1="696.3" y1="69.1" x2="640.9" y2="-26.6" stroke="#565f89" stroke-width="1.16" stroke-opacity="0.29" stroke-dasharray="4 3"/>
+<line x1="696.3" y1="69.1" x2="736.8" y2="47.0" stroke="#565f89" stroke-width="1.28" stroke-opacity="0.31"/>
+<line x1="486.4" y1="163.1" x2="412.4" y2="163.1" stroke="#41a6b5" stroke-width="1.42" stroke-opacity="0.34"/>
+<line x1="486.4" y1="163.1" x2="849.7" y2="119.0" stroke="#565f89" stroke-width="1.37" stroke-opacity="0.33"/>
+<line x1="521.0" y1="-10.8" x2="739.2" y2="55.2" stroke="#565f89" stroke-width="1.35" stroke-opacity="0.32"/>
+<line x1="521.0" y1="-10.8" x2="559.1" y2="-26.6" stroke="#7aa2f7" stroke-width="1.57" stroke-opacity="0.37"/>
+<line x1="521.0" y1="-10.8" x2="600.0" y2="-32.0" stroke="#7aa2f7" stroke-width="1.86" stroke-opacity="0.42"/>
+<line x1="521.0" y1="-10.8" x2="823.2" y2="82.5" stroke="#565f89" stroke-width="1.66" stroke-opacity="0.38"/>
+<line x1="521.0" y1="-10.8" x2="640.9" y2="-26.6" stroke="#7aa2f7" stroke-width="1.92" stroke-opacity="0.43"/>
+<line x1="521.0" y1="-10.8" x2="849.7" y2="119.0" stroke="#565f89" stroke-width="1.60" stroke-opacity="0.37"/>
+<line x1="521.0" y1="-10.8" x2="711.7" y2="14.3" stroke="#7aa2f7" stroke-width="1.81" stroke-opacity="0.41"/>
+<line x1="521.0" y1="-10.8" x2="736.8" y2="47.0" stroke="#7aa2f7" stroke-width="2.02" stroke-opacity="0.45"/>
+<line x1="521.0" y1="-10.8" x2="752.6" y2="85.1" stroke="#7aa2f7" stroke-width="1.57" stroke-opacity="0.37"/>
+<line x1="739.2" y1="55.2" x2="784.1" y2="59.9" stroke="#bb9af7" stroke-width="1.34" stroke-opacity="0.32"/>
+<line x1="739.2" y1="55.2" x2="600.0" y2="-32.0" stroke="#565f89" stroke-width="1.60" stroke-opacity="0.37"/>
+<line x1="739.2" y1="55.2" x2="823.2" y2="82.5" stroke="#bb9af7" stroke-width="1.41" stroke-opacity="0.33"/>
+<line x1="739.2" y1="55.2" x2="640.9" y2="-26.6" stroke="#565f89" stroke-width="1.30" stroke-opacity="0.31"/>
+<line x1="412.4" y1="163.1" x2="849.7" y2="119.0" stroke="#565f89" stroke-width="1.37" stroke-opacity="0.33"/>
+<line x1="784.1" y1="59.9" x2="849.7" y2="119.0" stroke="#bb9af7" stroke-width="1.28" stroke-opacity="0.31"/>
+<line x1="559.1" y1="-26.6" x2="600.0" y2="-32.0" stroke="#7aa2f7" stroke-width="1.57" stroke-opacity="0.37"/>
+<line x1="559.1" y1="-26.6" x2="640.9" y2="-26.6" stroke="#7aa2f7" stroke-width="1.57" stroke-opacity="0.37"/>
+<line x1="600.0" y1="-32.0" x2="823.2" y2="82.5" stroke="#565f89" stroke-width="1.52" stroke-opacity="0.36"/>
+<line x1="600.0" y1="-32.0" x2="640.9" y2="-26.6" stroke="#7aa2f7" stroke-width="2.11" stroke-opacity="0.47"/>
+<line x1="600.0" y1="-32.0" x2="736.8" y2="47.0" stroke="#7aa2f7" stroke-width="1.45" stroke-opacity="0.34"/>
+<line x1="823.2" y1="82.5" x2="640.9" y2="-26.6" stroke="#565f89" stroke-width="0.85" stroke-opacity="0.23" stroke-dasharray="4 3"/>
+<line x1="823.2" y1="82.5" x2="849.7" y2="119.0" stroke="#bb9af7" stroke-width="1.57" stroke-opacity="0.37"/>
+<line x1="823.2" y1="82.5" x2="711.7" y2="14.3" stroke="#565f89" stroke-width="0.99" stroke-opacity="0.25" stroke-dasharray="4 3"/>
+<line x1="823.2" y1="82.5" x2="736.8" y2="47.0" stroke="#565f89" stroke-width="1.42" stroke-opacity="0.34"/>
+<line x1="640.9" y1="-26.6" x2="679.0" y2="-10.8" stroke="#7aa2f7" stroke-width="1.28" stroke-opacity="0.31"/>
+<line x1="640.9" y1="-26.6" x2="849.7" y2="119.0" stroke="#565f89" stroke-width="1.31" stroke-opacity="0.32"/>
+<line x1="640.9" y1="-26.6" x2="711.7" y2="14.3" stroke="#7aa2f7" stroke-width="1.87" stroke-opacity="0.42"/>
+<line x1="640.9" y1="-26.6" x2="736.8" y2="47.0" stroke="#7aa2f7" stroke-width="1.67" stroke-opacity="0.39"/>
+<line x1="679.0" y1="-10.8" x2="711.7" y2="14.3" stroke="#7aa2f7" stroke-width="1.28" stroke-opacity="0.31"/>
+<line x1="679.0" y1="-10.8" x2="736.8" y2="47.0" stroke="#7aa2f7" stroke-width="1.28" stroke-opacity="0.31"/>
+<line x1="849.7" y1="119.0" x2="711.7" y2="14.3" stroke="#565f89" stroke-width="1.28" stroke-opacity="0.31"/>
+<line x1="849.7" y1="119.0" x2="736.8" y2="47.0" stroke="#565f89" stroke-width="1.65" stroke-opacity="0.38"/>
+<line x1="711.7" y1="14.3" x2="736.8" y2="47.0" stroke="#7aa2f7" stroke-width="1.28" stroke-opacity="0.31"/>
+<circle cx="758.0" cy="126.0" r="3.6" fill="#7aa2f7" fill-opacity="0.9" stroke="#1a1b26" stroke-width="1.2"><title>dbh · reach 1</title></circle>
+<circle cx="600.0" cy="27.0" r="7.4" fill="#3b4261" fill-opacity="0.9" stroke="#1a1b26" stroke-width="1.2"><title>sandbox-anim · reach 10</title></circle>
+<circle cx="991.6" cy="410.9" r="9.9" fill="#9ece6a" fill-opacity="0.9" stroke="#1a1b26" stroke-width="1.2"><title>sandbox-astar-replan · reach 16</title></circle>
+<circle cx="731.0" cy="764.6" r="4.5" fill="#73daca" fill-opacity="0.9" stroke="#1a1b26" stroke-width="1.2"><title>sandbox-bloom · reach 3</title></circle>
+<circle cx="433.1" cy="692.5" r="4.5" fill="#ff9e64" fill-opacity="0.9" stroke="#1a1b26" stroke-width="1.2"><title>sandbox-brain-loop1-denormal-swept · reach 3</title></circle>
+<circle cx="694.1" cy="815.5" r="4.5" fill="#73daca" fill-opacity="0.9" stroke="#1a1b26" stroke-width="1.2"><title>sandbox-brain-loop2-frameacc-loopseam · reach 3</title></circle>
+<circle cx="752.6" cy="166.9" r="4.5" fill="#7aa2f7" fill-opacity="0.9" stroke="#1a1b26" stroke-width="1.2"><title>sandbox-capture-layer-starves-tutorial · reach 3</title></circle>
+<circle cx="385.1" cy="740.5" r="4.0" fill="#ff9e64" fill-opacity="0.9" stroke="#1a1b26" stroke-width="1.2"><title>sandbox-collision · reach 2</title></circle>
+<circle cx="859.1" cy="163.1" r="4.0" fill="#bb9af7" fill-opacity="0.9" stroke="#1a1b26" stroke-width="1.2"><title>sandbox-combined-accessibility-render · reach 2</title></circle>
+<circle cx="736.8" cy="205.0" r="4.5" fill="#7aa2f7" fill-opacity="0.9" stroke="#1a1b26" stroke-width="1.2"><title>sandbox-combined-action-resolver · reach 3</title></circle>
+<circle cx="337.1" cy="692.5" r="6.6" fill="#ff9e64" fill-opacity="0.9" stroke="#1a1b26" stroke-width="1.2"><title>sandbox-combined-audio-realtime · reach 8</title></circle>
+<circle cx="339.6" cy="564.9" r="6.6" fill="#b4f9f8" fill-opacity="0.9" stroke="#1a1b26" stroke-width="1.2"><title>sandbox-combined-bloom-audio · reach 8</title></circle>
+<circle cx="849.7" cy="207.2" r="5.7" fill="#bb9af7" fill-opacity="0.9" stroke="#1a1b26" stroke-width="1.2"><title>sandbox-combined-brain-viz-growth · reach 6</title></circle>
+<circle cx="634.3" cy="796.0" r="4.0" fill="#73daca" fill-opacity="0.9" stroke="#1a1b26" stroke-width="1.2"><title>sandbox-combined-cadence-frametick · reach 2</title></circle>
+<circle cx="711.7" cy="237.7" r="4.5" fill="#7aa2f7" fill-opacity="0.9" stroke="#1a1b26" stroke-width="1.2"><title>sandbox-combined-cutscene-resume · reach 3</title></circle>
+<circle cx="873.9" cy="692.5" r="4.0" fill="#f7768e" fill-opacity="0.9" stroke="#1a1b26" stroke-width="1.2"><title>sandbox-combined-diagonal-distance · reach 2</title></circle>
+<circle cx="634.3" cy="733.1" r="12.4" fill="#73daca" fill-opacity="0.9" stroke="#1a1b26" stroke-width="1.2"><title>sandbox-combined-game-loop · reach 22</title></circle>
+<circle cx="942.1" cy="265.9" r="5.3" fill="#7dcfff" fill-opacity="0.9" stroke="#1a1b26" stroke-width="1.2"><title>sandbox-combined-garden-viz · reach 5</title></circle>
+<circle cx="924.5" cy="314.5" r="4.5" fill="#7dcfff" fill-opacity="0.9" stroke="#1a1b26" stroke-width="1.2"><title>sandbox-combined-graph-editor · reach 3</title></circle>
+<circle cx="679.0" cy="262.8" r="4.0" fill="#7aa2f7" fill-opacity="0.9" stroke="#1a1b26" stroke-width="1.2"><title>sandbox-combined-hold-dismiss · reach 2</title></circle>
+<circle cx="275.8" cy="601.7" r="4.0" fill="#b4f9f8" fill-opacity="0.9" stroke="#1a1b26" stroke-width="1.2"><title>sandbox-combined-lfsr-peak-meter · reach 2</title></circle>
+<circle cx="576.0" cy="764.6" r="7.0" fill="#c0caf5" fill-opacity="0.9" stroke="#1a1b26" stroke-width="1.2"><title>sandbox-combined-loop-combat · reach 9</title></circle>
+<circle cx="640.9" cy="278.6" r="4.0" fill="#7aa2f7" fill-opacity="0.9" stroke="#1a1b26" stroke-width="1.2"><title>sandbox-combined-mobile-visibility · reach 2</title></circle>
+<circle cx="315.4" cy="410.9" r="5.7" fill="#a9b1d6" fill-opacity="0.9" stroke="#1a1b26" stroke-width="1.2"><title>sandbox-combined-movement-stack · reach 6</title></circle>
+<circle cx="600.0" cy="284.0" r="3.6" fill="#7aa2f7" fill-opacity="0.9" stroke="#1a1b26" stroke-width="1.2"><title>sandbox-combined-narrative-flags · reach 1</title></circle>
+<circle cx="559.1" cy="278.6" r="4.0" fill="#7aa2f7" fill-opacity="0.9" stroke="#1a1b26" stroke-width="1.2"><title>sandbox-combined-opticon-prologue-latch · reach 2</title></circle>
+<circle cx="521.0" cy="262.8" r="4.0" fill="#7aa2f7" fill-opacity="0.9" stroke="#1a1b26" stroke-width="1.2"><title>sandbox-combined-opticon-test-connectivity · reach 2</title></circle>
+<circle cx="844.4" cy="743.6" r="4.9" fill="#f7768e" fill-opacity="0.9" stroke="#1a1b26" stroke-width="1.2"><title>sandbox-combined-pathfinding-stack · reach 4</title></circle>
+<circle cx="785.4" cy="743.6" r="4.9" fill="#f7768e" fill-opacity="0.9" stroke="#1a1b26" stroke-width="1.2"><title>sandbox-combined-pathmetrics · reach 4</title></circle>
+<circle cx="488.3" cy="237.7" r="4.0" fill="#7aa2f7" fill-opacity="0.9" stroke="#1a1b26" stroke-width="1.2"><title>sandbox-combined-polling-click · reach 2</title></circle>
+<circle cx="823.2" cy="243.7" r="4.0" fill="#bb9af7" fill-opacity="0.9" stroke="#1a1b26" stroke-width="1.2"><title>sandbox-combined-quest-offer-batch · reach 2</title></circle>
+<circle cx="784.1" cy="266.3" r="4.5" fill="#bb9af7" fill-opacity="0.9" stroke="#1a1b26" stroke-width="1.2"><title>sandbox-combined-realtime-loop · reach 3</title></circle>
+<circle cx="1023.0" cy="450.0" r="4.0" fill="#3b4261" fill-opacity="0.9" stroke="#1a1b26" stroke-width="1.2"><title>sandbox-combined-replan-gameloop · reach 2</title></circle>
+<circle cx="971.1" cy="460.4" r="4.5" fill="#9ece6a" fill-opacity="0.9" stroke="#1a1b26" stroke-width="1.2"><title>sandbox-combined-replan-save · reach 3</title></circle>
+<circle cx="241.4" cy="410.9" r="7.8" fill="#a9b1d6" fill-opacity="0.9" stroke="#1a1b26" stroke-width="1.2"><title>sandbox-combined-rpg-progression · reach 11</title></circle>
+<circle cx="463.2" cy="205.0" r="4.0" fill="#7aa2f7" fill-opacity="0.9" stroke="#1a1b26" stroke-width="1.2"><title>sandbox-combined-save-lifecycle · reach 2</title></circle>
+<circle cx="447.4" cy="166.9" r="6.1" fill="#7aa2f7" fill-opacity="0.9" stroke="#1a1b26" stroke-width="1.2"><title>sandbox-combined-save-system · reach 7</title></circle>
+<circle cx="442.0" cy="126.0" r="4.0" fill="#7aa2f7" fill-opacity="0.9" stroke="#1a1b26" stroke-width="1.2"><title>sandbox-combined-seed-drawstream · reach 2</title></circle>
+<circle cx="879.8" cy="340.3" r="7.8" fill="#7dcfff" fill-opacity="0.9" stroke="#1a1b26" stroke-width="1.2"><title>sandbox-combined-skilltree-formula · reach 11</title></circle>
+<circle cx="739.2" cy="271.0" r="4.0" fill="#bb9af7" fill-opacity="0.9" stroke="#1a1b26" stroke-width="1.2"><title>sandbox-combined-sparse-map · reach 2</title></circle>
+<circle cx="694.1" cy="713.7" r="4.0" fill="#73daca" fill-opacity="0.9" stroke="#1a1b26" stroke-width="1.2"><title>sandbox-combined-tickorder-cancel · reach 2</title></circle>
+<circle cx="921.6" cy="480.9" r="4.0" fill="#9ece6a" fill-opacity="0.9" stroke="#1a1b26" stroke-width="1.2"><title>sandbox-combined-undo-replan · reach 2</title></circle>
+<circle cx="967.4" cy="564.9" r="6.1" fill="#e0af68" fill-opacity="0.9" stroke="#1a1b26" stroke-width="1.2"><title>sandbox-combined-wfc-keylock · reach 7</title></circle>
+<circle cx="828.9" cy="331.3" r="4.0" fill="#7dcfff" fill-opacity="0.9" stroke="#1a1b26" stroke-width="1.2"><title>sandbox-csv · reach 2</title></circle>
+<circle cx="696.3" cy="257.1" r="7.8" fill="#bb9af7" fill-opacity="0.9" stroke="#1a1b26" stroke-width="1.2"><title>sandbox-dbz-combat · reach 11</title></circle>
+<circle cx="539.0" cy="815.5" r="5.7" fill="#c0caf5" fill-opacity="0.9" stroke="#1a1b26" stroke-width="1.2"><title>sandbox-dbz-merged · reach 6</title></circle>
+<circle cx="479.2" cy="796.0" r="7.0" fill="#c0caf5" fill-opacity="0.9" stroke="#1a1b26" stroke-width="1.2"><title>sandbox-dbz-team-combat · reach 9</title></circle>
+<circle cx="755.9" cy="692.5" r="5.3" fill="#f7768e" fill-opacity="0.9" stroke="#1a1b26" stroke-width="1.2"><title>sandbox-distance · reach 5</title></circle>
+<circle cx="447.4" cy="85.1" r="4.9" fill="#7aa2f7" fill-opacity="0.9" stroke="#1a1b26" stroke-width="1.2"><title>sandbox-dog-pathfinding · reach 4</title></circle>
+<circle cx="662.8" cy="226.9" r="4.0" fill="#bb9af7" fill-opacity="0.9" stroke="#1a1b26" stroke-width="1.2"><title>sandbox-edge-draft-opticon-scrub · reach 2</title></circle>
+<circle cx="795.7" cy="291.8" r="4.9" fill="#7dcfff" fill-opacity="0.9" stroke="#1a1b26" stroke-width="1.2"><title>sandbox-expr · reach 4</title></circle>
+<circle cx="275.8" cy="528.1" r="4.5" fill="#b4f9f8" fill-opacity="0.9" stroke="#1a1b26" stroke-width="1.2"><title>sandbox-genesis-fm · reach 3</title></circle>
+<circle cx="370.4" cy="265.9" r="4.0" fill="#ff75a0" fill-opacity="0.9" stroke="#1a1b26" stroke-width="1.2"><title>sandbox-genesis-mix · reach 2</title></circle>
+<circle cx="296.4" cy="265.9" r="4.0" fill="#ff75a0" fill-opacity="0.9" stroke="#1a1b26" stroke-width="1.2"><title>sandbox-genesis-psg · reach 2</title></circle>
+<circle cx="795.7" cy="240.1" r="5.7" fill="#7dcfff" fill-opacity="0.9" stroke="#1a1b26" stroke-width="1.2"><title>sandbox-graph-viz · reach 6</title></circle>
+<circle cx="943.2" cy="615.3" r="4.9" fill="#e0af68" fill-opacity="0.9" stroke="#1a1b26" stroke-width="1.2"><title>sandbox-keylock · reach 4</title></circle>
+<circle cx="872.1" cy="460.4" r="5.3" fill="#9ece6a" fill-opacity="0.9" stroke="#1a1b26" stroke-width="1.2"><title>sandbox-loot-pity · reach 5</title></circle>
+<circle cx="888.6" cy="627.8" r="3.6" fill="#e0af68" fill-opacity="0.9" stroke="#1a1b26" stroke-width="1.2"><title>sandbox-maze · reach 1</title></circle>
+<circle cx="828.9" cy="200.6" r="4.0" fill="#7dcfff" fill-opacity="0.9" stroke="#1a1b26" stroke-width="1.2"><title>sandbox-myers-diff · reach 2</title></circle>
+<circle cx="785.4" cy="641.4" r="5.7" fill="#f7768e" fill-opacity="0.9" stroke="#1a1b26" stroke-width="1.2"><title>sandbox-pathfinding-astar-heuristic · reach 6</title></circle>
+<circle cx="844.4" cy="641.4" r="5.3" fill="#f7768e" fill-opacity="0.9" stroke="#1a1b26" stroke-width="1.2"><title>sandbox-pathfinding-diagonal · reach 5</title></circle>
+<circle cx="851.6" cy="410.9" r="3.6" fill="#9ece6a" fill-opacity="0.9" stroke="#1a1b26" stroke-width="1.2"><title>sandbox-pathfinding-flowfield · reach 1</title></circle>
+<circle cx="385.1" cy="644.5" r="4.0" fill="#ff9e64" fill-opacity="0.9" stroke="#1a1b26" stroke-width="1.2"><title>sandbox-phantom-voice-eats-budget · reach 2</title></circle>
+<circle cx="479.2" cy="733.1" r="6.1" fill="#c0caf5" fill-opacity="0.9" stroke="#1a1b26" stroke-width="1.2"><title>sandbox-power-scaling · reach 7</title></circle>
+<circle cx="872.1" cy="361.4" r="5.3" fill="#9ece6a" fill-opacity="0.9" stroke="#1a1b26" stroke-width="1.2"><title>sandbox-procgen-ca · reach 5</title></circle>
+<circle cx="844.8" cy="592.9" r="4.0" fill="#e0af68" fill-opacity="0.9" stroke="#1a1b26" stroke-width="1.2"><title>sandbox-procgen-lsystem · reach 2</title></circle>
+<circle cx="844.8" cy="536.9" r="4.9" fill="#e0af68" fill-opacity="0.9" stroke="#1a1b26" stroke-width="1.2"><title>sandbox-procgen-wfc · reach 4</title></circle>
+<circle cx="644.4" cy="185.7" r="4.5" fill="#bb9af7" fill-opacity="0.9" stroke="#1a1b26" stroke-width="1.2"><title>sandbox-rankpull-forcelayout · reach 3</title></circle>
+<circle cx="879.8" cy="191.6" r="4.5" fill="#7dcfff" fill-opacity="0.9" stroke="#1a1b26" stroke-width="1.2"><title>sandbox-ratelimit · reach 3</title></circle>
+<circle cx="463.2" cy="47.0" r="4.0" fill="#7aa2f7" fill-opacity="0.9" stroke="#1a1b26" stroke-width="1.2"><title>sandbox-resolver-starves-tutorial · reach 2</title></circle>
+<circle cx="644.4" cy="140.6" r="4.0" fill="#bb9af7" fill-opacity="0.9" stroke="#1a1b26" stroke-width="1.2"><title>sandbox-rng-determinism-not-sufficient-for-replay · reach 2</title></circle>
+<circle cx="921.6" cy="340.9" r="7.0" fill="#9ece6a" fill-opacity="0.9" stroke="#1a1b26" stroke-width="1.2"><title>sandbox-savemigrate · reach 9</title></circle>
+<circle cx="888.6" cy="502.0" r="4.9" fill="#e0af68" fill-opacity="0.9" stroke="#1a1b26" stroke-width="1.2"><title>sandbox-scatter · reach 4</title></circle>
+<circle cx="600.0" cy="873.0" r="4.0" fill="#3b4261" fill-opacity="0.9" stroke="#1a1b26" stroke-width="1.2"><title>sandbox-seam-loop-movement · reach 2</title></circle>
+<circle cx="488.3" cy="14.3" r="4.0" fill="#7aa2f7" fill-opacity="0.9" stroke="#1a1b26" stroke-width="1.2"><title>sandbox-seed-vs-replay-verification · reach 2</title></circle>
+<circle cx="943.2" cy="514.5" r="3.6" fill="#e0af68" fill-opacity="0.9" stroke="#1a1b26" stroke-width="1.2"><title>sandbox-shuffle · reach 1</title></circle>
+<circle cx="924.5" cy="217.4" r="5.3" fill="#7dcfff" fill-opacity="0.9" stroke="#1a1b26" stroke-width="1.2"><title>sandbox-toposort · reach 5</title></circle>
+<circle cx="971.1" cy="361.4" r="4.0" fill="#9ece6a" fill-opacity="0.9" stroke="#1a1b26" stroke-width="1.2"><title>sandbox-undo-redo · reach 2</title></circle>
+<circle cx="662.8" cy="99.3" r="4.0" fill="#bb9af7" fill-opacity="0.9" stroke="#1a1b26" stroke-width="1.2"><title>sandbox-validation-ladder-vs-key-collision · reach 2</title></circle>
+<circle cx="177.0" cy="450.0" r="4.9" fill="#3b4261" fill-opacity="0.9" stroke="#1a1b26" stroke-width="1.2"><title>sandbox-voice-pool-reset · reach 4</title></circle>
+<circle cx="539.0" cy="713.7" r="5.7" fill="#c0caf5" fill-opacity="0.9" stroke="#1a1b26" stroke-width="1.2"><title>brain-builder · reach 6</title></circle>
+<circle cx="696.3" cy="69.1" r="9.5" fill="#bb9af7" fill-opacity="0.9" stroke="#1a1b26" stroke-width="1.2"><title>brain · reach 15</title></circle>
+<circle cx="486.4" cy="163.1" r="4.0" fill="#41a6b5" fill-opacity="0.9" stroke="#1a1b26" stroke-width="1.2"><title>collective · reach 2</title></circle>
+<circle cx="521.0" cy="-10.8" r="12.4" fill="#7aa2f7" fill-opacity="0.9" stroke="#1a1b26" stroke-width="1.2"><title>dog · reach 22</title></circle>
+<circle cx="739.2" cy="55.2" r="8.7" fill="#bb9af7" fill-opacity="0.9" stroke="#1a1b26" stroke-width="1.2"><title>draft · reach 13</title></circle>
+<circle cx="412.4" cy="163.1" r="4.0" fill="#41a6b5" fill-opacity="0.9" stroke="#1a1b26" stroke-width="1.2"><title>garden · reach 2</title></circle>
+<circle cx="784.1" cy="59.9" r="4.5" fill="#bb9af7" fill-opacity="0.9" stroke="#1a1b26" stroke-width="1.2"><title>memory · reach 3</title></circle>
+<circle cx="559.1" cy="-26.6" r="4.5" fill="#7aa2f7" fill-opacity="0.9" stroke="#1a1b26" stroke-width="1.2"><title>mirage · reach 3</title></circle>
+<circle cx="600.0" cy="-32.0" r="7.8" fill="#7aa2f7" fill-opacity="0.9" stroke="#1a1b26" stroke-width="1.2"><title>opticon · reach 11</title></circle>
+<circle cx="823.2" cy="82.5" r="8.2" fill="#bb9af7" fill-opacity="0.9" stroke="#1a1b26" stroke-width="1.2"><title>test · reach 12</title></circle>
+<circle cx="640.9" cy="-26.6" r="12.4" fill="#7aa2f7" fill-opacity="0.9" stroke="#1a1b26" stroke-width="1.2"><title>the-game-prologue · reach 22</title></circle>
+<circle cx="679.0" cy="-10.8" r="4.9" fill="#7aa2f7" fill-opacity="0.9" stroke="#1a1b26" stroke-width="1.2"><title>the-game-the-answering-deep · reach 4</title></circle>
+<circle cx="849.7" cy="119.0" r="13.3" fill="#bb9af7" fill-opacity="0.9" stroke="#1a1b26" stroke-width="1.2"><title>the-game-the-recursion · reach 24</title></circle>
+<circle cx="711.7" cy="14.3" r="8.2" fill="#7aa2f7" fill-opacity="0.9" stroke="#1a1b26" stroke-width="1.2"><title>the-game-the-waiting-city · reach 12</title></circle>
+<circle cx="736.8" cy="47.0" r="9.9" fill="#7aa2f7" fill-opacity="0.9" stroke="#1a1b26" stroke-width="1.2"><title>the-game-wrong-sky · reach 16</title></circle>
+<circle cx="752.6" cy="85.1" r="3.6" fill="#7aa2f7" fill-opacity="0.9" stroke="#1a1b26" stroke-width="1.2"><title>lockstep · reach 1</title></circle>
+<text x="600.0" y="18.0" text-anchor="middle" font-size="10.5" fill="#c0caf5">sandbox-anim</text>
+<text x="991.6" y="401.9" text-anchor="middle" font-size="10.5" fill="#c0caf5">sandbox-astar-replan</text>
+<text x="337.1" y="683.5" text-anchor="middle" font-size="10.5" fill="#c0caf5">sandbox-combined-audio-realtime</text>
+<text x="339.6" y="555.9" text-anchor="middle" font-size="10.5" fill="#c0caf5">sandbox-combined-bloom-audio</text>
+<text x="634.3" y="724.1" text-anchor="middle" font-size="10.5" fill="#c0caf5">sandbox-combined-game-loop</text>
+<text x="576.0" y="755.6" text-anchor="middle" font-size="10.5" fill="#c0caf5">sandbox-combined-loop-combat</text>
+<text x="241.4" y="401.9" text-anchor="middle" font-size="10.5" fill="#c0caf5">sandbox-combined-rpg-progression</text>
+<text x="447.4" y="157.9" text-anchor="middle" font-size="10.5" fill="#c0caf5">sandbox-combined-save-system</text>
+<text x="879.8" y="331.3" text-anchor="middle" font-size="10.5" fill="#c0caf5">sandbox-combined-skilltree-formula</text>
+<text x="967.4" y="555.9" text-anchor="middle" font-size="10.5" fill="#c0caf5">sandbox-combined-wfc-keylock</text>
+<text x="696.3" y="248.1" text-anchor="middle" font-size="10.5" fill="#c0caf5">sandbox-dbz-combat</text>
+<text x="479.2" y="787.0" text-anchor="middle" font-size="10.5" fill="#c0caf5">sandbox-dbz-team-combat</text>
+<text x="479.2" y="724.1" text-anchor="middle" font-size="10.5" fill="#c0caf5">sandbox-power-scaling</text>
+<text x="921.6" y="331.9" text-anchor="middle" font-size="10.5" fill="#c0caf5">sandbox-savemigrate</text>
+<text x="696.3" y="60.1" text-anchor="middle" font-size="10.5" fill="#c0caf5">brain</text>
+<text x="521.0" y="-19.8" text-anchor="middle" font-size="10.5" fill="#c0caf5">dog</text>
+<text x="739.2" y="46.2" text-anchor="middle" font-size="10.5" fill="#c0caf5">draft</text>
+<text x="600.0" y="-41.0" text-anchor="middle" font-size="10.5" fill="#c0caf5">opticon</text>
+<text x="823.2" y="73.5" text-anchor="middle" font-size="10.5" fill="#c0caf5">test</text>
+<text x="640.9" y="-35.6" text-anchor="middle" font-size="10.5" fill="#c0caf5">the-game-prologue</text>
+<text x="849.7" y="110.0" text-anchor="middle" font-size="10.5" fill="#c0caf5">the-game-the-recursion</text>
+<text x="711.7" y="5.3" text-anchor="middle" font-size="10.5" fill="#c0caf5">the-game-the-waiting-city</text>
+<text x="736.8" y="38.0" text-anchor="middle" font-size="10.5" fill="#c0caf5">the-game-wrong-sky</text>
+</svg>
+<figcaption>Nodes sized by reach, coloured by community; grey ring = systems in
+no confident community. Edge width and opacity are confidence.
+<b>Dashed edges are hearsay</b> &mdash; mined from prose, never declared, and
+possibly just a name-drop (tension T26 is open on exactly that).</figcaption>
+</figure>
+
+<h2>Communities, where brain sees one blob</h2>
+<p>Connected components put 100 of these systems in a single cluster
+(1 component in total), which is true and tells you nothing. gossip
+clusters on confidence and keeps only what <b>five independent traversals all
+agree on</b>: 13 communities, largest 24. The traversals
+agreed with each other 0.55 of the time underneath that consensus &mdash;
+printed rather than hidden, because it is the real uncertainty here.</p>
+<details><summary><i style="background:#7aa2f7"></i>community 1 · 24 systems · anchor <code>dbh</code></summary><p><code>dbh</code> <code>sandbox-capture-layer-starves-tutorial</code> <code>sandbox-combined-action-resolver</code> <code>sandbox-combined-cutscene-resume</code> <code>sandbox-combined-hold-dismiss</code> <code>sandbox-combined-mobile-visibility</code> <code>sandbox-combined-narrative-flags</code> <code>sandbox-combined-opticon-prologue-latch</code> <code>sandbox-combined-opticon-test-connectivity</code> <code>sandbox-combined-polling-click</code> <code>sandbox-combined-save-lifecycle</code> <code>sandbox-combined-save-system</code> <code>sandbox-combined-seed-drawstream</code> <code>sandbox-dog-pathfinding</code> <code>sandbox-resolver-starves-tutorial</code> <code>sandbox-seed-vs-replay-verification</code> <code>dog</code> <code>mirage</code> <code>opticon</code> <code>the-game-prologue</code> <code>the-game-the-answering-deep</code> <code>the-game-the-waiting-city</code> <code>the-game-wrong-sky</code> <code>lockstep</code></p></details><details><summary><i style="background:#bb9af7"></i>community 2 · 15 systems · anchor <code>sandbox-combined-accessibility-render</code></summary><p><code>sandbox-combined-accessibility-render</code> <code>sandbox-combined-brain-viz-growth</code> <code>sandbox-combined-quest-offer-batch</code> <code>sandbox-combined-realtime-loop</code> <code>sandbox-combined-sparse-map</code> <code>sandbox-dbz-combat</code> <code>sandbox-edge-draft-opticon-scrub</code> <code>sandbox-rankpull-forcelayout</code> <code>sandbox-rng-determinism-not-sufficient-for-replay</code> <code>sandbox-validation-ladder-vs-key-collision</code> <code>brain</code> <code>draft</code> <code>memory</code> <code>test</code> <code>the-game-the-recursion</code></p></details><details><summary><i style="background:#7dcfff"></i>community 3 · 9 systems · anchor <code>sandbox-combined-garden-viz</code></summary><p><code>sandbox-combined-garden-viz</code> <code>sandbox-combined-graph-editor</code> <code>sandbox-combined-skilltree-formula</code> <code>sandbox-csv</code> <code>sandbox-expr</code> <code>sandbox-graph-viz</code> <code>sandbox-myers-diff</code> <code>sandbox-ratelimit</code> <code>sandbox-toposort</code></p></details><details><summary><i style="background:#9ece6a"></i>community 4 · 8 systems · anchor <code>sandbox-astar-replan</code></summary><p><code>sandbox-astar-replan</code> <code>sandbox-combined-replan-save</code> <code>sandbox-combined-undo-replan</code> <code>sandbox-loot-pity</code> <code>sandbox-pathfinding-flowfield</code> <code>sandbox-procgen-ca</code> <code>sandbox-savemigrate</code> <code>sandbox-undo-redo</code></p></details><details><summary><i style="background:#e0af68"></i>community 5 · 7 systems · anchor <code>sandbox-combined-wfc-keylock</code></summary><p><code>sandbox-combined-wfc-keylock</code> <code>sandbox-keylock</code> <code>sandbox-maze</code> <code>sandbox-procgen-lsystem</code> <code>sandbox-procgen-wfc</code> <code>sandbox-scatter</code> <code>sandbox-shuffle</code></p></details><details><summary><i style="background:#f7768e"></i>community 6 · 6 systems · anchor <code>sandbox-combined-diagonal-distance</code></summary><p><code>sandbox-combined-diagonal-distance</code> <code>sandbox-combined-pathfinding-stack</code> <code>sandbox-combined-pathmetrics</code> <code>sandbox-distance</code> <code>sandbox-pathfinding-astar-heuristic</code> <code>sandbox-pathfinding-diagonal</code></p></details><details><summary><i style="background:#73daca"></i>community 7 · 5 systems · anchor <code>sandbox-bloom</code></summary><p><code>sandbox-bloom</code> <code>sandbox-brain-loop2-frameacc-loopseam</code> <code>sandbox-combined-cadence-frametick</code> <code>sandbox-combined-game-loop</code> <code>sandbox-combined-tickorder-cancel</code></p></details><details><summary><i style="background:#c0caf5"></i>community 8 · 5 systems · anchor <code>sandbox-combined-loop-combat</code></summary><p><code>sandbox-combined-loop-combat</code> <code>sandbox-dbz-merged</code> <code>sandbox-dbz-team-combat</code> <code>sandbox-power-scaling</code> <code>brain-builder</code></p></details><details><summary><i style="background:#ff9e64"></i>community 9 · 4 systems · anchor <code>sandbox-brain-loop1-denormal-swept</code></summary><p><code>sandbox-brain-loop1-denormal-swept</code> <code>sandbox-collision</code> <code>sandbox-combined-audio-realtime</code> <code>sandbox-phantom-voice-eats-budget</code></p></details><details><summary><i style="background:#b4f9f8"></i>community 10 · 3 systems · anchor <code>sandbox-combined-bloom-audio</code></summary><p><code>sandbox-combined-bloom-audio</code> <code>sandbox-combined-lfsr-peak-meter</code> <code>sandbox-genesis-fm</code></p></details><details><summary><i style="background:#a9b1d6"></i>community 11 · 2 systems · anchor <code>sandbox-combined-movement-stack</code></summary><p><code>sandbox-combined-movement-stack</code> <code>sandbox-combined-rpg-progression</code></p></details><details><summary><i style="background:#ff75a0"></i>community 12 · 2 systems · anchor <code>sandbox-genesis-mix</code></summary><p><code>sandbox-genesis-mix</code> <code>sandbox-genesis-psg</code></p></details><details><summary><i style="background:#41a6b5"></i>community 13 · 2 systems · anchor <code>collective</code></summary><p><code>collective</code> <code>garden</code></p></details>
+
+<h2>Who saw it happen</h2>
+<div class="bar">
+  <i style="width:72.0%;background:#9ece6a"></i>
+  <i style="width:10.3%;background:#e0af68"></i>
+  <i style="width:17.7%;background:#f7768e"></i>
+</div>
+<p class="key">216 witness-only (declared in a <code>Composed:</code>
+field) &middot; 31 mixed &middot; 53 hearsay-only (mined from prose).
+47 edges are asserted exactly once, by prose alone &mdash; scored zero,
+listed rather than silently dropped.</p>
+
+<h2>Edges by confidence</h2>
+<p>witness &times; independence &times; corroboration &times; recency, with a
+single zero collapsing the product. An edge whose <code>Got right</code> names
+both systems is a pair confirmed <em>compatible</em>, not merely co-tested, and
+never decays.</p>
+<div class="scroll"><table>
+<tr><th>conf</th><th>system</th><th>system</th><th>provenance</th><th>sources</th><th></th></tr>
+<tr><td>0.708</td><td>sandbox-astar-replan</td><td>sandbox-savemigrate</td><td>witness</td><td>3</td><td>safe</td></tr><tr><td>0.618</td><td>opticon</td><td>the-game-prologue</td><td>witness</td><td>2</td><td></td></tr><tr><td>0.586</td><td>dog</td><td>the-game-wrong-sky</td><td>mixed</td><td>6</td><td></td></tr><tr><td>0.579</td><td>sandbox-combined-loop-combat</td><td>sandbox-power-scaling</td><td>witness</td><td>2</td><td></td></tr><tr><td>0.568</td><td>sandbox-combined-brain-viz-growth</td><td>brain</td><td>witness</td><td>2</td><td></td></tr><tr><td>0.546</td><td>sandbox-anim</td><td>sandbox-brain-loop2-frameacc-loopseam</td><td>witness</td><td>2</td><td></td></tr><tr><td>0.546</td><td>sandbox-anim</td><td>sandbox-combined-audio-realtime</td><td>witness</td><td>2</td><td></td></tr><tr><td>0.546</td><td>sandbox-brain-loop2-frameacc-loopseam</td><td>sandbox-combined-game-loop</td><td>witness</td><td>2</td><td></td></tr><tr><td>0.546</td><td>sandbox-collision</td><td>sandbox-combined-audio-realtime</td><td>witness</td><td>2</td><td></td></tr><tr><td>0.544</td><td>dog</td><td>the-game-prologue</td><td>mixed</td><td>6</td><td>safe</td></tr><tr><td>0.525</td><td>the-game-prologue</td><td>the-game-the-waiting-city</td><td>mixed</td><td>3</td><td>safe</td></tr><tr><td>0.524</td><td>dog</td><td>opticon</td><td>mixed</td><td>2</td><td></td></tr>
+</table></div>
+
+<h2>What to test next</h2>
+<p>context &times; novelty &times; drama. Novelty favours the recluse over the
+hub &mdash; pairing the two best-connected systems is the least surprising
+experiment available &mdash; and drama is the share of the pair&rsquo;s lessons
+still unverified, so a good seam retires provenance debt while it adds an edge.</p>
+<div class="scroll"><table>
+<tr><th>score</th><th>system</th><th>system</th><th>tags</th><th>reach</th><th>drama</th></tr>
+<tr><td>4.41</td><td>test</td><td>lockstep</td><td>13</td><td>12/1</td><td>0.43</td></tr><tr><td>3.88</td><td>memory</td><td>lockstep</td><td>9</td><td>3/1</td><td>0.61</td></tr><tr><td>3.79</td><td>sandbox-astar-replan</td><td>lockstep</td><td>7</td><td>16/1</td><td>0.83</td></tr><tr><td>3.79</td><td>sandbox-combined-movement-stack</td><td>lockstep</td><td>7</td><td>6/1</td><td>0.83</td></tr><tr><td>3.79</td><td>sandbox-combined-save-system</td><td>lockstep</td><td>7</td><td>7/1</td><td>0.83</td></tr><tr><td>3.79</td><td>sandbox-power-scaling</td><td>lockstep</td><td>7</td><td>7/1</td><td>0.83</td></tr><tr><td>3.75</td><td>chronicles</td><td>lockstep</td><td>3</td><td>0/1</td><td>1.00</td></tr><tr><td>3.75</td><td>shadow</td><td>lockstep</td><td>3</td><td>0/1</td><td>1.00</td></tr><tr><td>3.67</td><td>sandbox-dbz-combat</td><td>lockstep</td><td>8</td><td>11/1</td><td>0.67</td></tr><tr><td>3.62</td><td>the-game-the-waiting-city</td><td>lockstep</td><td>11</td><td>12/1</td><td>0.41</td></tr><tr><td>3.50</td><td>sandbox-combined-skilltree-formula</td><td>lockstep</td><td>8</td><td>11/1</td><td>0.62</td></tr><tr><td>3.48</td><td>collective-reference</td><td>lockstep</td><td>3</td><td>0/1</td><td>0.91</td></tr>
+</table></div>
+
+<footer>Generated by <code>gossip viz</code> &mdash; read-only over
+<code>memory/projects</code>. Layout is a pure function of the canon: no RNG, no
+physics, no wall-clock, so two runs over the same knowledge produce identical
+pages and a visual diff is a diff of what is known.</footer>
+
+</div></body></html>

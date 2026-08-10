@@ -1,0 +1,3 @@
+#!/bin/sh
+# gossip — read Brain's co-verification graph as a social network.
+exec python3 -m gossip.cli "$@"
