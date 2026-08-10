@@ -45,8 +45,11 @@ def main(argv=None):
         description="Read Brain's co-verification graph as a social network.",
     )
     p.add_argument("report", nargs="?", default="summary",
-                   choices=sorted(list(report.REPORTS) + ["viz"]),
-                   help="which report to print ('viz' writes an HTML page)")
+                   choices=sorted(list(report.REPORTS) + ["viz", "hazard"]),
+                   help="which report to print ('viz' writes an HTML page; "
+                        "'hazard' runs a pre-mortem over the tags in --plan)")
+    p.add_argument("--plan", nargs="+", default=None, metavar="TAG",
+                   help="tags describing what you are about to build (hazard)")
     p.add_argument("--out", default="docs/index.html",
                    help="output path for `viz` (default docs/index.html)")
     p.add_argument("--canon", action="append", default=None,
@@ -89,7 +92,13 @@ def main(argv=None):
 
     ctx = context(canon, args.asof, cfg or None, args.margin, prior)
 
-    if args.report == "viz":
+    if args.report == "hazard":
+        from . import hazard
+        if not args.plan:
+            print("gossip hazard --plan <tag> <tag> ...", file=sys.stderr)
+            return 2
+        hazard.report(ctx, args.plan)
+    elif args.report == "viz":
         from . import viz
         parent = os.path.dirname(os.path.abspath(args.out))
         os.makedirs(parent, exist_ok=True)

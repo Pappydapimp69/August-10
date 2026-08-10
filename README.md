@@ -13,6 +13,7 @@ Read-only, python3 stdlib, no dependencies. It never writes canon.
 ```
 bin/gossip [report] [--canon DIR] [--asof YYYY-MM-DD] [--prior FILE]
 
+  hazard --plan <tag>...   pre-mortem: what will bite this, before you build it
   summary       one screen (default)
   provenance    declared composition vs mined name-drop
   edges         ranked by confidence rather than raw weight
@@ -35,6 +36,37 @@ Measured on the live canon — 573 lessons, 125 systems, as of 2026-08-05:
 | top seam | `brain + opticon` (reach 15/10 — two hubs) | `test + lockstep` (reach 12/1) |
 
 Its seam ranking overlaps brain's by **2 of 15**.
+
+## `hazard` — the pre-mortem
+
+Everything else over this canon is descriptive. `brain query` answers *what do
+we know about X*; `brain analyze` answers *what shape is what we know*. Both look
+backwards, and neither takes a plan as input.
+
+`hazard` does. Name the tags of the thing you are about to build:
+
+```
+$ gossip hazard --plan determinism audio mobile
+
+       5  █████    audio + determinism
+       0  ·        audio + mobile
+       0  ·        determinism + mobile
+
+  UNTESTED GROUND — 2 pair(s) the canon has never carried together.
+    determinism + mobile   (77 and 12 lessons apiece, 0 together)
+    audio + mobile         (22 and 12 lessons apiece, 0 together)
+```
+
+The middle block is the reason it exists. **77 lessons on determinism, 12 on
+mobile, and not one that carries both.** A relevance-ranked search over that
+combination returns nothing — which is indistinguishable, to the person reading
+it, from reassurance. The emptiest cell in the matrix is the dangerous one, and
+every retrieval tool sorts it last.
+
+It also ranks lessons that record an *actual failure* above ones that merely
+cover the area, discounts unverified provenance without dropping it, and surfaces
+the open tensions sitting over the plan's own ground — forks you are otherwise
+about to settle silently.
 
 ## The four mechanisms, and the kernels they come from
 
@@ -120,7 +152,7 @@ only intake difference between the two tools.
 ## Tests
 
 ```
-python3 -m unittest discover -s tests -t .    # 43 tests
+python3 -m unittest discover -s tests -t .    # 55 tests
 ```
 
 Fixture-based unit tests plus integration tests against the real canon, which
