@@ -22,7 +22,7 @@
   canvas{width:100%;height:auto;display:block;border:1px solid var(--line);
          border-radius:10px;background:#0a2418;cursor:crosshair;touch-action:manipulation}
   .bar{display:flex;gap:.9rem;align-items:center;flex-wrap:wrap;margin:.7rem 0 0;
-       font-size:.88rem;color:var(--dim)}
+       font-size:.85rem;color:var(--dim)}
   .bar b{color:var(--accent);font-variant-numeric:tabular-nums}
   .controls{display:flex;gap:.6rem;flex-wrap:wrap;margin:.55rem 0 0}
   button{font:inherit;font-size:.85rem;background:#1d2130;color:var(--ink);
@@ -51,13 +51,14 @@
 
 <h1>Ember</h1>
 <p class="sub"><b>Click anywhere to start a fire</b> — or just watch the
-chronicle. Three tribes gather wood and quarry stone, raise camps into walled
-halls, forge spears, and build shrines to the Moon, the Storm, or the Grove.
-They send gift caravans, demand tribute, swear friendships, nurse permanent
-grudges, and face dilemmas their own character decides — mercy or hoarding,
-honor or spoils. Wars still happen. And everything that rages here — fire and
-war alike — carries a finite, dwindling budget. Nothing rages forever, by
-construction.</p>
+chronicle. Three tribes forage wood, stone and food, grow their population,
+raise camps into walled halls, research a small tech tree, and go to war —
+their territory ring widening as they grow. A single tree gives a fixed
+number of harvests, then it's gone: it almost always regrows a few pixels
+away after a while, but sometimes dies for good and salts the ground around
+it. Building a structure, growing the population, and researching a
+technology all cost real resources. Nothing here — fire, war, or a single
+tree — can rage or grow forever, by construction.</p>
 
 <canvas id="c" width="960" height="560"></canvas>
 
@@ -66,10 +67,10 @@ construction.</p>
   <span>day <b id="day"></b></span>
   <span>sky <b id="sky"></b></span>
   <span>trees <b id="trees"></b></span>
-  <span>camps <b id="camps"></b></span>
   <span>wars <b id="wars"></b></span>
   <span>fires <b id="fires"></b></span>
 </div>
+<div class="bar" id="camps"></div>
 
 <div class="controls">
   <button id="sound" type="button" aria-pressed="false">sound: off</button>
@@ -79,32 +80,36 @@ construction.</p>
 <div id="log" aria-label="Chronicle"></div>
 
 <footer>
-Everything here is a recorded lesson wearing a costume. Fire and <b>war</b>
-carry <b>generation budgets</b> (<code>the-answering-deep#E11</code>; tension
-<code>T24</code> records that a cautious opponent stalemates forever without
-one). Diplomacy is <b>earned, not declared</b> — gift caravans and paid tribute
-move relations the way an earned currency moves a negotiation
-(<code>barter-economy / earned-currency</code>) — and every war leaves a
-<b>permanent grudge scoped to that pair</b>, capping how warm the friendship
-can ever become again (<code>non-decaying-pivotal-events /
-traumatic-memories-dont-fade</code>). Each tribe's <b>character</b> is two
-seeded values, mercy and honor, and the moral dilemmas — feed a starving
-neighbor or hoard, shelter enemy wounded or drive them out, return spoils
-taken after a truce or keep them — are resolved by those values and written to
-the chronicle (<code>trust-as-character</code>). Rituals ride the sky's own
-clock: the Moon tribe worships at night, the Storm tribe in the rain, the
-Grove at first light (<code>day-night / clock-as-pressure</code>). Defenders
-chase only inside their ring and reset (<code>pursuit-ring-territory</code>),
-a spotted raider commits the whole tribe (<code>coupled-enemy-alert</code>),
-mood arbitration is tiered because a margin inside the urgent band can defeat
-a veto (<code>hysteresis-can-defeat-a-saturated-veto</code>), and defenders
-out-accelerate raiders because speed parity decides chases. Spears are forged
-from wood and stone, carried to battle, and consumed by it. The synthesized
-sound is gesture-gated, fire-and-forget, guarded, clock-scheduled, and
-voice-budgeted (<code>dog#E1</code>, <code>shadow#E1</code>,
-<code>dog#E6</code>). One seed, no ambient entropy: world <code>7</code>
-fights the same wars, swears the same friendships, and forgives none of the
-same grudges, on every machine, forever.
+Everything here is a recorded lesson wearing a costume, plus one system built
+without a precedent to lean on. Fire and <b>war</b> carry <b>generation
+budgets</b> (<code>the-answering-deep#E11</code>; tension <code>T24</code>
+records that a cautious opponent stalemates forever without one). The
+<b>territory ring widens with population on a square-root curve</b> — the
+same shape that keeps a difficulty ramp from outrunning the player
+(<code>sublinear-difficulty-ramp / sqrt-curve-to-2x</code>), so ten more
+mouths to feed roughly doubles the ring, not the population. Diplomacy is
+<b>earned, not declared</b> (<code>barter-economy / earned-currency</code>),
+and every war leaves a <b>permanent grudge</b> capping how warm a friendship
+can become again (<code>non-decaying-pivotal-events</code>). Each tribe's
+mercy and honor resolve its moral dilemmas and are written to the chronicle
+(<code>trust-as-character</code>). Rituals ride the sky's clock
+(<code>day-night / clock-as-pressure</code>); defenders chase only inside
+their ring and reset (<code>pursuit-ring-territory</code>); a spotted raider
+commits the tribe (<code>coupled-enemy-alert</code>); mood arbitration stays
+tiered because a margin inside the urgent band can defeat a veto
+(<code>hysteresis-can-defeat-a-saturated-veto</code>). <b>The tree lifecycle
+has no recorded kernel behind it</b> — it was designed, not retrieved: a
+harvested tree yields a fixed number of loads, then is consumed; after a
+delay it rolls once — 5% salts the ground into a dead stump that blocks any
+new tree within 2px forever, 95% a sapling takes root 3–5px away in a random
+direction. Building a level, growing the population, and researching a
+technology all deduct real resources on the spot, the same discipline the
+shrine and armory already used. The synthesized sound is gesture-gated,
+fire-and-forget, guarded, clock-scheduled, voice-budgeted
+(<code>dog#E1</code>, <code>shadow#E1</code>, <code>dog#E6</code>). One
+seed, no ambient entropy: world <code>7</code> grows the same forest, the
+same tribes, and forgives none of the same grudges, on every machine,
+forever.
 </footer>
 </div>
 
@@ -124,7 +129,7 @@ let SEED=parseInt(params.get('seed')||'7',10)||7;
 const PAUSED=params.get('pause')==='1';
 let world, frame, firesSurvived=0, wildFires=0, bolts=[];
 let wars=[], truce={}, warsStarted=0, warsEnded=0, lastRaidFrame=-9999;
-let chronicle=[], metrics;
+let chronicle=[], metrics, nextCritterId=0;
 
 const TRIBES=[
   {name:'amber', hues:[36,22,48]},
@@ -136,7 +141,24 @@ const FAITHS=[
   {name:'the Storm',glyph:'⚡'},   // worships in rain
   {name:'the Grove',glyph:'❦'},   // worships at first light
 ];
-const RING=95;
+
+// tech tree: two tiers, three branches. Cost is deducted the instant a tribe
+// can afford it — the same lump-sum discipline the shrine/armory already
+// used — and the effect is read directly off t.tech at the point of use
+// rather than cached, so there is exactly one source of truth per tribe.
+const TECH_ORDER=['woodcraft','masonry','foraging','bronze','fortify','agriculture'];
+const TECH={
+  woodcraft:{cost:{wood:10},req:null,label:'Woodcraft'},
+  masonry:  {cost:{stone:8},req:null,label:'Masonry'},
+  foraging: {cost:{food:6},req:null,label:'Foraging'},
+  bronze:   {cost:{stone:12,wood:6},req:'masonry',label:'Bronze-working'},
+  fortify:  {cost:{stone:16},req:'masonry',label:'Fortification'},
+  agriculture:{cost:{food:14,wood:6},req:'foraging',label:'Agriculture'},
+};
+const TREE_YIELD=3;        // harvests a single tree gives before it's consumed
+const STUMP_CHANCE=0.05;   // rolled first; the complement always respawns
+const STUMP_EXCLUDE=2;     // px — a dead stump blocks a new tree this close
+const RESPAWN_MIN=3, RESPAWN_MAX=5;  // px offset from the source tree
 
 function h(){ let x=world.seed|0;
   for(let i=0;i<arguments.length;i++)
@@ -151,6 +173,12 @@ function log(msg){
     .map(e=>'<div><span class="d">d'+e.d+'</span>'+e.msg+'</div>').join('');
 }
 
+function makeTree(x,y,seedRnd){
+  return {x,y,r:9+(seedRnd?seedRnd():h(x|0,y|0,841))*7,state:'alive',burn:0,
+          budget:0,regrow:0,sway:(seedRnd?seedRnd():h(x|0,y|0,842))*6.28,
+          yield:TREE_YIELD};
+}
+
 function makeWorld(seed){
   const rnd=mulberry32(seed);
   const pond={x:200+rnd()*560, y:180+rnd()*220, r:60+rnd()*30};
@@ -161,8 +189,7 @@ function makeWorld(seed){
     if(Math.hypot(x-pond.x,y-pond.y)<pond.r+34) continue;
     let ok=true;
     for(const t of trees){ if(Math.hypot(x-t.x,y-t.y)<38){ok=false;break;} }
-    if(ok) trees.push({x,y,r:9+rnd()*7,state:'alive',burn:0,budget:0,regrow:0,
-                       sway:rnd()*6.28});
+    if(ok) trees.push(makeTree(x,y,rnd));
   }
   const rocks=[];
   for(let i=0;i<6;i++){
@@ -186,8 +213,9 @@ function makeWorld(seed){
       best={x,y};
     }
     if(!best) best={x:150+i*300,y:120+i*150};
-    tribes.push({camp:best, stock:3, stone:0, spears:0, name:TRIBES[i].name,
-      faith:perm[i], shrine:false, favor:0, bless:0,
+    tribes.push({camp:best, stock:3, stone:0, food:2, spears:0, pop:3, level:0,
+      name:TRIBES[i].name, faith:perm[i], shrine:false, favor:0, bless:0,
+      tech:{}, researching:null,
       mercy:0.15+mulberry32(seed^(300+i))()*0.7,
       honor:0.15+mulberry32(seed^(400+i))()*0.7,
       gift:null});
@@ -200,16 +228,23 @@ function makeWorld(seed){
   }
   const stars=[];
   for(let i=0;i<70;i++) stars.push({x:rnd()*W,y:rnd()*H*.9,tw:rnd()*6.28});
-  const critters=[];
+  const critters=[]; nextCritterId=0;
   for(let i=0;i<9;i++){
     const tr=i%3;
-    critters.push({id:i,tribe:tr,
+    critters.push({id:nextCritterId++,tribe:tr,
       x:tribes[tr].camp.x+(rnd()-0.5)*60, y:tribes[tr].camp.y+(rnd()-0.5)*60,
       vx:0,vy:0,thirst:rnd()*.5,hunger:rnd()*.5,mood:'wander',
-      carrying:0,carryStone:0,wounded:0,tx:0,ty:0,retarget:0,
+      carrying:0,carryStone:0,carryFood:0,wounded:0,tx:0,ty:0,retarget:0,
+      // a small seeded personal bias per chore. Without it every critter in
+      // a tribe sees IDENTICAL stockpile inputs on the same tick and, under
+      // hysteresis, locks onto the same mood forever — measured: with no
+      // bias, food stayed pinned at 2 for 20 straight simulated days because
+      // nobody ever forages. The bias breaks the tie deterministically.
+      bias:{gather:rnd()*0.18,stone:rnd()*0.18,forage:rnd()*0.18},
       hue:TRIBES[tr].hues[(i/3)|0], blink:rnd()*300|0});
   }
   return {seed,rnd,pond,trees,rocks,tribes,flowers,stars,critters,
+          stumps:[], regrowTimers:[],
           rel:{'0-1':0,'0-2':0,'1-2':0}, grudge:{'0-1':0,'0-2':0,'1-2':0},
           allied:{'0-1':false,'0-2':false,'1-2':false}};
 }
@@ -225,6 +260,114 @@ function bumpRel(i,j,d){
     log(world.tribes[i].name+' and '+world.tribes[j].name+' swore friendship');}
   if(a[k]&&world.rel[k]<15){a[k]=false;
     log('the friendship of '+world.tribes[i].name+' and '+world.tribes[j].name+' cooled');}
+}
+
+// ---------- population, territory, tech, building: all resource-gated ------
+// sublinear-difficulty-ramp / sqrt-curve-to-2x: ten more mouths roughly
+// doubles the ring, not the population, so a big tribe is imposing without
+// making border incidents geometrically more likely.
+function campRing(t){
+  const base=70+16*Math.sqrt(t.pop)+(t.tech.fortify?20:0);
+  return Math.min(160,base);
+}
+function popCost(t){
+  const mult=t.tech.agriculture?0.7:1;
+  return {food:Math.round((6+t.pop*2)*mult), wood:Math.round((4+t.pop)*mult)};
+}
+const LEVEL_COST=[null,
+  {wood:6},{wood:10,stone:4},{wood:14,stone:8},{wood:20,stone:12}];
+
+function stepGrowth(){
+  if(frame%600!==150) return;
+  for(let i=0;i<3;i++){
+    const t=world.tribes[i];
+    // building: spend to climb one level, never skip one
+    if(t.level<4){
+      const c=LEVEL_COST[t.level+1];
+      if(t.stock>=(c.wood||0) && t.stone>=(c.stone||0)){
+        t.stock-=c.wood||0; t.stone-=c.stone||0; t.level++;
+        metrics.levelsBuilt++;
+        log(t.name+' raised their camp to level '+t.level);
+      }
+    }
+    // population: a birth costs food and wood, and gets pricier per head
+    if(t.pop<16){
+      const c=popCost(t);
+      if(t.food>=c.food && t.stock>=c.wood){
+        t.food-=c.food; t.stock-=c.wood; t.pop++;
+        const idx=world.critters.filter(o=>o.tribe===i).length;
+        world.critters.push({id:nextCritterId++,tribe:i,
+          x:t.camp.x+(world.rnd()-0.5)*40, y:t.camp.y+(world.rnd()-0.5)*40,
+          vx:0,vy:0,thirst:0.3,hunger:0.3,mood:'wander',
+          carrying:0,carryStone:0,carryFood:0,wounded:0,tx:0,ty:0,retarget:0,
+          bias:{gather:world.rnd()*0.18,stone:world.rnd()*0.18,forage:world.rnd()*0.18},
+          hue:TRIBES[i].hues[idx%3],blink:0});
+        metrics.births++;
+        log(t.name+"'s fires grew — a new mouth to feed, "+t.pop+' now');
+      }
+    }
+    // tech: fixed research order, first affordable with prereqs met
+    for(const id of TECH_ORDER){
+      if(t.tech[id]) continue;
+      const def=TECH[id];
+      if(def.req && !t.tech[def.req]) continue;
+      const c=def.cost;
+      if(t.stock>=(c.wood||0)&&t.stone>=(c.stone||0)&&t.food>=(c.food||0)){
+        t.stock-=c.wood||0; t.stone-=c.stone||0; t.food-=c.food||0;
+        t.tech[id]=true; metrics.techsResearched++;
+        log(t.name+' discovered '+def.label);
+      }
+      break;   // one attempt per tribe per tick keeps the log readable
+    }
+  }
+}
+
+// ---------- tree resource lifecycle: depletion, stump-or-respawn -----------
+// A harvested tree is consumed outright, not merely burned down — this is
+// independent of the fire cycle above it in the file, which still owns
+// alive/burning/stump(regrow)/sprout for FIRE damage specifically. Harvest
+// depletion instead removes the tree from the array and schedules a single
+// resolution event.
+function depleteTree(t){
+  world.trees=world.trees.filter(x=>x!==t);
+  const delay=900+Math.floor(h(frame,840,t.x|0,t.y|0)*400);
+  world.regrowTimers.push({x:t.x,y:t.y,due:frame+delay});
+}
+
+function blockedByStump(x,y){
+  return world.stumps.some(s=>Math.hypot(s.x-x,s.y-y)<STUMP_EXCLUDE);
+}
+function clearOfTrees(x,y,min){
+  return !world.trees.some(t=>Math.hypot(t.x-x,t.y-y)<min);
+}
+
+function stepTreeLifecycle(){
+  if(!world.regrowTimers.length) return;
+  const due=world.regrowTimers.filter(r=>r.due<=frame);
+  if(!due.length) return;
+  world.regrowTimers=world.regrowTimers.filter(r=>r.due>frame);
+  for(const r of due){
+    // roll for stump FIRST, then the complement always attempts a respawn
+    if(h(frame,860,r.x|0,r.y|0)<STUMP_CHANCE){
+      world.stumps.push({x:r.x,y:r.y});
+      metrics.deadStumps++;
+      continue;
+    }
+    let placed=false;
+    for(let attempt=0;attempt<4&&!placed;attempt++){
+      const angle=h(frame,861,r.x|0,r.y|0,attempt)*Math.PI*2;
+      const mag=RESPAWN_MIN+h(frame,862,r.x|0,r.y|0,attempt)*(RESPAWN_MAX-RESPAWN_MIN);
+      const nx=r.x+Math.cos(angle)*mag, ny=r.y+Math.sin(angle)*mag;
+      if(Math.hypot(nx-world.pond.x,ny-world.pond.y)<world.pond.r+34) continue;
+      if(blockedByStump(nx,ny)) continue;
+      if(!clearOfTrees(nx,ny,38)) continue;
+      world.trees.push(makeTree(nx,ny));
+      metrics.treesRespawned++;
+      placed=true;
+    }
+    // a rare total block (surrounded by stumps/trees) just loses that tree —
+    // matches the 95% figure being a chance to respawn, not a guarantee
+  }
 }
 
 function dayIndex(){ return Math.floor(frame/DAY); }
@@ -276,15 +419,22 @@ function stepFire(){
   for(const f of world.flowers) if(f.eaten>0) f.eaten--;
   for(const b of bolts) b.ttl--;
   bolts=bolts.filter(b=>b.ttl>0);
+  stepTreeLifecycle();
 }
 
 // ---------- diplomacy, war, dilemmas ----------
 function tribeWar(i){ return wars.find(w=>w.a===i||w.b===i); }
 function enemyOf(w,i){ return w.a===i?w.b:w.a; }
+function dutyBearer(tribe,salt){
+  const ids=world.critters.filter(o=>o.tribe===tribe).map(o=>o.id).sort((a,b)=>a-b);
+  if(!ids.length) return -1;
+  return ids[((salt%ids.length)+ids.length)%ids.length];
+}
 
 function stepWars(){
   if(frame%2700===0) for(const t of world.tribes) t.stock=Math.max(0,t.stock-2);
   for(const t of world.tribes) if(t.bless>0) t.bless--;
+  stepGrowth();
 
   // peace slowly warms relations — but only up to the grudge-scarred cap
   if(frame%5400===1200){
@@ -371,7 +521,7 @@ function stepWars(){
       if(!tribeWar(i)){
         for(const c of world.critters){
           if(c.tribe!==j||c.wounded<300)continue;
-          if(Math.hypot(c.x-ti.camp.x,c.y-ti.camp.y)>RING)continue;
+          if(Math.hypot(c.x-ti.camp.x,c.y-ti.camp.y)>campRing(ti))continue;
           if(h(frame,720+i*3+j+c.id) < 0.2+0.6*ti.mercy){
             c.wounded=Math.min(c.wounded,120);
             metrics.dShelter++; bumpRel(i,j,8);
@@ -400,7 +550,7 @@ function stepCritters(){
     if(c.wounded>0){ c.wounded--; c.vx=c.vy=0; c.mood='down'; continue; }
     c.thirst=Math.min(1,c.thirst+0.0004);
     c.hunger=Math.min(1,c.hunger+0.00032);
-    const T=world.tribes[c.tribe], myCamp=T.camp;
+    const T=world.tribes[c.tribe], myCamp=T.camp, ring=campRing(T);
     const speed=T.bless>0?1.15:1;
     let nearFire=null,fd=1e9;
     for(const t of world.trees){ if(t.state==='burning'){
@@ -411,12 +561,10 @@ function stepCritters(){
       const en=enemyOf(w,c.tribe); let bd=1e9;
       for(const o of cs){ if(o.tribe!==en||o.wounded>0)continue;
         const d=Math.hypot(o.x-myCamp.x,o.y-myCamp.y);
-        if(d<RING&&d<bd){bd=d;intruder=o;} }
+        if(d<ring&&d<bd){bd=d;intruder=o;} }
     }
-    const raidDuty = w && w.budget>0 && !intruder &&
-      (c.id===[c.tribe,c.tribe+3,c.tribe+6][w.budget%3]);
-    const giftDuty = T.gift && !w &&
-      (c.id===[c.tribe,c.tribe+3,c.tribe+6][(T.gift.to+dayIndex())%3]);
+    const raidDuty = w && w.budget>0 && !intruder && c.id===dutyBearer(c.tribe,w.budget);
+    const giftDuty = T.gift && !w && c.id===dutyBearer(c.tribe,T.gift.to+dayIndex());
 
     // tiered arbitration; margin-hysteresis only among the chores
     if(nearFire&&fd<130) c.mood='flee';
@@ -427,11 +575,23 @@ function stepCritters(){
       const wx=weather();
       const worshipTime = T.shrine && !w &&
         ((T.faith===0&&isNight())||(T.faith===1&&wx!=='clear')||(T.faith===2&&isDawn()));
-      const needStone = (!T.shrine||T.spears<2) && world.rocks.some(r=>r.amount>0);
+      // a target reserve, not a one-time milestone — gated on shrine+armory
+      // alone, stone gathering stopped for good the moment both were built,
+      // which silently blocked every later building level and stone-costing
+      // tech (measured: stone stuck at 0/0/0 for all three tribes by day 60)
+      const needStone = T.stone<20 && world.rocks.some(r=>r.amount>0);
+      // urgency scales with how empty the stockpile is, not a flat constant —
+      // otherwise every chore reads the same on a full stockpile and an
+      // empty one alike, and nothing ever reallocates toward what's actually
+      // scarce. bias is a small per-critter tiebreaker (see creation site).
       const scores={
         drink:c.thirst*0.9, eat:c.hunger*0.85,
-        gather:(isNight()?0:0.6)+(c.carrying?0.05:0),
-        stone:(isNight()||!needStone?0:0.65)+(c.carryStone?0.05:0),
+        gather:(isNight()?0:0.20+0.40*Math.max(0,1-T.stock/30))
+               +(c.carrying?0.05:0)+c.bias.gather,
+        stone:(isNight()||!needStone?0:0.20+0.40*Math.max(0,1-T.stone/20))
+               +(c.carryStone?0.05:0)+c.bias.stone,
+        forage:(isNight()?0:0.20+0.40*Math.max(0,1-T.food/20))
+               +(c.carryFood?0.05:0)+c.bias.forage,
         worship:worshipTime?0.8:0,
         sleep:isNight()?0.62:0, wander:0.3};
       if(!(c.mood in scores)) c.mood='wander';
@@ -514,7 +674,21 @@ function stepCritters(){
           const d=Math.hypot(r.x-c.x,r.y-c.y); if(d<bd3){bd3=d;br=r;} }
         if(br){
           if(bd3>10){c.vx+=(br.x-c.x)/bd3*.16;c.vy+=(br.y-c.y)/bd3*.16;}
-          else{br.amount--;c.carryStone=1;}
+          else{br.amount--;c.carryStone=T.tech.masonry?2:1;}
+        }
+      }
+    } else if(c.mood==='forage'){
+      if(c.carryFood>0){
+        const d=Math.hypot(myCamp.x-c.x,myCamp.y-c.y)||1;
+        if(d<12){T.food=Math.min(60,T.food+c.carryFood);c.carryFood=0;}
+        else{c.vx+=(myCamp.x-c.x)/d*.16;c.vy+=(myCamp.y-c.y)/d*.16;}
+      } else {
+        let bf=null,bd2=1e9;
+        for(const f of world.flowers){ if(f.eaten>0)continue;
+          const d=Math.hypot(f.x-c.x,f.y-c.y); if(d<bd2){bd2=d;bf=f;} }
+        if(bf){
+          if(bd2>6){c.vx+=(bf.x-c.x)/bd2*.16;c.vy+=(bf.y-c.y)/bd2*.16;}
+          else{bf.eaten=1800;c.carryFood=T.tech.foraging?2:1;}
         }
       }
     } else if(c.mood==='gather'){
@@ -531,7 +705,14 @@ function stepCritters(){
           const d=Math.hypot(t.x-c.x,t.y-c.y); if(d<bd3){bd3=d;bt=t;} } }
         if(bt){
           if(bd3>10){c.vx+=(bt.x-c.x)/bd3*.16;c.vy+=(bt.y-c.y)/bd3*.16;}
-          else c.carrying=1;
+          else {
+            // resource lifecycle: a tree gives TREE_YIELD harvests, then it
+            // is consumed outright and handed to depleteTree() for the
+            // stump-or-respawn resolution, independent of fire damage
+            c.carrying=T.tech.woodcraft?2:1;
+            bt.yield--;
+            if(bt.yield<=0) depleteTree(bt);
+          }
         }
       }
     } else if(c.mood==='sleep'){
@@ -556,11 +737,12 @@ function stepCritters(){
           const dS=TD.spears>0?(TD.spears--,1):0;
           const rS=TR.spears>0?(TR.spears--,1):0;
           if(dS||rS)metrics.spearCombats++;
-          let p=0.6+0.2*dS-0.2*rS
+          const swing=TD.tech.bronze?0.28:0.2;
+          let p=0.6+swing*dS-swing*rS
                 +(TD.bless>0?0.08:0)-(TR.bless>0?0.08:0);
           p=Math.max(0.15,Math.min(0.9,p));
           const loser = h(frame,900+c.id*10+r.id)<p ? r : c;
-          loser.wounded=700; loser.carrying=0; loser.carryStone=0;
+          loser.wounded=700; loser.carrying=0; loser.carryStone=0; loser.carryFood=0;
           w.budget--; lastRaidFrame=frame;
         }
       }
@@ -624,11 +806,12 @@ function stepAudio(){
 }
 
 // ---------- drawing ----------
-function campLevel(stock){ return stock>=28?4:stock>=18?3:stock>=10?2:stock>=4?1:0; }
 function drawCamp(tr,i){
-  const {x,y}=tr.camp, hue=TRIBES[i].hues[0], lv=campLevel(tr.stock);
-  if(tribeWar(i)){ cx.strokeStyle=`hsla(${hue} 70% 60% / .18)`; cx.lineWidth=2;
-    cx.beginPath(); cx.arc(x,y,RING,0,7); cx.stroke(); }
+  const {x,y}=tr.camp, hue=TRIBES[i].hues[0], lv=tr.level, ring=campRing(tr);
+  const atWar=tribeWar(i);
+  cx.strokeStyle=`hsla(${hue} 70% 60% / ${atWar?0.18:0.05})`;
+  cx.lineWidth=atWar?2:1;
+  cx.beginPath(); cx.arc(x,y,ring,0,7); cx.stroke();
   cx.fillStyle='#3a342c';
   for(let k=0;k<7;k++){const a=k/7*6.28;
     cx.fillRect(x+Math.cos(a)*8-1.5,y+Math.sin(a)*8-1.5,3,3);}
@@ -671,7 +854,7 @@ function drawCamp(tr,i){
     }
   }
   cx.fillStyle=`hsl(${hue} 60% 70%)`;cx.font='9px sans-serif';
-  cx.fillText(tr.stock+(tr.stone?'+'+tr.stone+'s':''),x-6,y+18);
+  cx.fillText('P'+tr.pop,x-7,y+18);
 }
 
 function draw(){
@@ -695,6 +878,13 @@ function draw(){
     cx.fillRect(f.x,f.y+Math.sin(frame/40+f.x)*1.2,3,3);
   }
   world.tribes.forEach((t,i)=>drawCamp(t,i));
+  // dead stumps: permanent, harvest-caused — distinct from fire's regrow-stump
+  for(const s of world.stumps){
+    cx.fillStyle='#26201c';cx.fillRect(s.x-2.5,s.y,5,4);
+    cx.strokeStyle='#100d0b';cx.lineWidth=1;
+    cx.beginPath();cx.moveTo(s.x-2,s.y-1);cx.lineTo(s.x+2,s.y+3);
+    cx.moveTo(s.x+2,s.y-1);cx.lineTo(s.x-2,s.y+3);cx.stroke();
+  }
   for(const t of world.trees){
     const sway=Math.sin(frame/55+t.sway)*(wx==='storm'?3.2:1.5);
     if(t.state==='alive'){
@@ -735,6 +925,8 @@ function draw(){
     if(c.carrying>0){ cx.fillStyle='#8a6b3a';
       cx.beginPath();cx.arc(c.x+5,c.y-6,3,0,7);cx.fill(); }
     if(c.carryStone>0){ cx.fillStyle='#8b8d92';
+      cx.beginPath();cx.arc(c.x+5,c.y-6,3,0,7);cx.fill(); }
+    if(c.carryFood>0){ cx.fillStyle='#e8b4d8';
       cx.beginPath();cx.arc(c.x+5,c.y-6,3,0,7);cx.fill(); }
     cx.fillStyle='#111';
     if(down){ cx.font='8px sans-serif';cx.fillText('x x',c.x-6,c.y-1); }
@@ -788,10 +980,8 @@ function hud(){
   document.getElementById('day').textContent=1+dayIndex();
   document.getElementById('sky').textContent=weather();
   const alive=world.trees.filter(t=>t.state==='alive'||t.state==='sprout').length;
-  document.getElementById('trees').textContent=alive+'/'+world.trees.length;
-  document.getElementById('camps').textContent=
-    world.tribes.map((t,i)=>t.name[0]+t.stock+'·L'+campLevel(t.stock)+
-      (t.shrine?FAITHS[t.faith].glyph:'')).join(' ');
+  document.getElementById('trees').textContent=
+    alive+'/'+(alive+world.regrowTimers.length)+' ('+world.stumps.length+' dead)';
   const wtxt=wars.map(w=>world.tribes[w.a].name+'⚔'+world.tribes[w.b].name+
     ' ('+w.budget+')').join(', ');
   document.getElementById('wars').textContent=
@@ -800,6 +990,11 @@ function hud(){
   document.getElementById('fires').textContent=
     firesSurvived+(wildFires?' ('+wildFires+' wild)':'')+
     (burning?' · '+burning+' burning':'');
+  document.getElementById('camps').innerHTML=world.tribes.map((t,i)=>
+    '<span>'+t.name+' <b>P'+t.pop+'</b> L'+t.level+' w'+t.stock+' s'+t.stone+
+    ' f'+t.food+(t.shrine?' '+FAITHS[t.faith].glyph:'')+
+    ' <b>'+Object.keys(t.tech).length+'</b>tech ring'+Math.round(campRing(t))+
+    '</span>').join('');
 }
 
 function tick(){
@@ -817,7 +1012,9 @@ function boot(seed){
   wars=[]; truce={}; warsStarted=0; warsEnded=0; chronicle=[];
   metrics={spearsCrafted:0,spearCombats:0,blessings:0,gifts:0,
            tributesPaid:0,tributeWars:0,alliances:0,
-           dAid:0,dHoard:0,dShelter:0,dExpel:0,dReturned:0,dKept:0};
+           dAid:0,dHoard:0,dShelter:0,dExpel:0,dReturned:0,dKept:0,
+           levelsBuilt:0,births:0,techsResearched:0,
+           treesRespawned:0,deadStumps:0};
   history.replaceState(null,'','?seed='+seed);
   document.getElementById('log').innerHTML=
     '<div><span class="d">d1</span>three tribes woke by their fires</div>';
@@ -840,7 +1037,7 @@ window.EMBER={ignite:(x,y)=>ignite(x,y,10,false),
   get weather(){return weather();},get wild(){return wildFires;},
   get wars(){return wars;},get warsStarted(){return warsStarted;},
   get warsEnded(){return warsEnded;},get metrics(){return metrics;},
-  get chronicle(){return chronicle;},
+  get chronicle(){return chronicle;},campRing,
   step(){frame++;stepFire();stepWars();stepCritters();}};
 
 boot(SEED);
