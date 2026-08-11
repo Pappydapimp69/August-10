@@ -55,8 +55,9 @@ chronicle. Three tribes forage wood, stone and food through four seasons,
 grow their population, raise granaries, lodges, forges, watchtowers and
 field plots as their tech allows, and go to war — red banners over the camps,
 a burning front line drawn between them, and scars left on the ground where
-people fell. Everyone has a role: chiefs, warriors, foragers, masons,
-woodsmen. Winter starves the forage and slows the forest, so scarcity — and
+people fell. The dishonourable ones research fire-setting and send arsonists
+to burn a rival's stores; the honourable mostly refuse. Everyone has a role:
+chiefs, warriors, foragers, masons, woodsmen. Winter starves the forage and slows the forest, so scarcity — and
 the envy that follows it — has a season. A single tree gives a fixed number
 of harvests, then it's gone: it almost always regrows a few pixels away, but
 sometimes dies for good and salts the ground around it. Nothing here — fire,
@@ -126,6 +127,19 @@ season. <b>Buildings make the tech tree visible</b> — a granary, a mason's
 lodge, a forge, a watchtower and field plots each appear only once their tech
 is researched and their cost is paid, so you can read who is ahead off the
 board instead of the HUD.
+<br><br>
+<b>Fire-setting is the last technology, and the only one that is a weapon.</b>
+Unlocking it is not the same as stooping to it: whether a tribe will actually
+burn a neighbour is decided by its seeded <em>honour</em>, the same character
+value that resolves its moral dilemmas — measured across 2000 wars, a tribe at
+honour 0.05 burns in <b>81%</b> of its wars and one at 0.95 in <b>14%</b>. The
+roll is taken once per war, so nobody flickers between scruples mid-campaign.
+An arsonist (orange ring, carried flame) walks to the enemy camp and puts
+their stores to the torch — six timber gone, the nearby woods catching with
+it — and it costs the same finite war budget a raid would, so burning is a
+choice between loot and ruin rather than a free extra action. Defenders
+standing near the camp turn them away. Burning is remembered harder than
+robbery: it leaves a permanent grudge, exactly as a war does.
 </footer>
 </div>
 
@@ -162,7 +176,7 @@ const FAITHS=[
 // can afford it — the same lump-sum discipline the shrine/armory already
 // used — and the effect is read directly off t.tech at the point of use
 // rather than cached, so there is exactly one source of truth per tribe.
-const TECH_ORDER=['woodcraft','masonry','foraging','bronze','fortify','agriculture'];
+const TECH_ORDER=['woodcraft','masonry','foraging','bronze','fortify','agriculture','arson'];
 const TECH={
   woodcraft:{cost:{wood:10},req:null,label:'Woodcraft'},
   masonry:  {cost:{stone:8},req:null,label:'Masonry'},
@@ -170,6 +184,9 @@ const TECH={
   bronze:   {cost:{stone:12,wood:6},req:'masonry',label:'Bronze-working'},
   fortify:  {cost:{stone:16},req:'masonry',label:'Fortification'},
   agriculture:{cost:{food:14,wood:6},req:'foraging',label:'Agriculture'},
+  // Fire-setting: the last tech, and the only one that is a WEAPON rather than
+  // a capability. Unlocking it does not mean using it — see willingToBurn().
+  arson:    {cost:{wood:12,food:8},req:'bronze',label:'Fire-setting'},
 };
 // Roles, not just more bodies. enemy-role-not-headcount / distinct-role-test:
 // adding headcount adds noise; adding a DISTINCT role adds a system. Each role
@@ -505,6 +522,18 @@ function stepFire(){
 // ---------- diplomacy, war, dilemmas ----------
 function tribeWar(i){ return wars.find(w=>w.a===i||w.b===i); }
 function enemyOf(w,i){ return w.a===i?w.b:w.a; }
+
+// Unlocking fire-setting is not the same as stooping to it. Whether a tribe
+// will actually burn a neighbour's woods is decided by its HONOR, the same
+// seeded character value that already resolves its moral dilemmas
+// (trust-as-character) — so the tech is a capability and the character is the
+// gate. Rolled once per war against the war's start frame, not per tick, so a
+// tribe does not flicker between scruples mid-campaign.
+function willingToBurn(w,i){
+  const T=world.tribes[i];
+  if(!T.tech.arson) return false;
+  return h(w.since,760+i) < 0.85-0.75*T.honor;
+}
 function dutyBearer(tribe,salt){
   const ids=world.critters.filter(o=>o.tribe===tribe).map(o=>o.id).sort((a,b)=>a-b);
   if(!ids.length) return -1;
@@ -516,10 +545,18 @@ function stepWars(){
   for(const t of world.tribes) if(t.bless>0) t.bless--;
   stepGrowth();
 
-  // peace slowly warms relations — but only up to the grudge-scarred cap
+  // Peace warms relations, but only to CORDIAL — never to alliance. The page
+  // claims diplomacy is earned, not declared, and passive warming was quietly
+  // declaring it: time alone climbed to the grudge cap (37), sailed past the
+  // alliance threshold (28), and every pair allied by day 11 and never fought
+  // again. Measured: 1 war in 100 days, and arson — researched day 5 — could
+  // never once be used. Crossing into alliance now requires an actual earned
+  // act, a gift or aid caravan, which is what the design always said.
+  const CORDIAL=20;
   if(frame%5400===1200){
     for(let i=0;i<3;i++)for(let j=i+1;j<3;j++)
-      if(!tribeWar(i)&&!tribeWar(j)&&world.rel[pk(i,j)]<relCap(i,j)) bumpRel(i,j,1);
+      if(!tribeWar(i)&&!tribeWar(j)&&world.rel[pk(i,j)]<Math.min(CORDIAL,relCap(i,j)))
+        bumpRel(i,j,1);
   }
   if(frame%400===0){
     for(let i=0;i<3;i++)for(let j=i+1;j<3;j++){
@@ -536,7 +573,7 @@ function stepWars(){
           metrics.tributesPaid++; bumpRel(i,j,4);
           log(P.name+' paid tribute to '+R.name);
         } else {
-          wars.push({a:rich,b:poor,budget:7,cause:'refused tribute'});
+          wars.push({a:rich,b:poor,budget:7,cause:'refused tribute',since:frame});
           warsStarted++; metrics.tributeWars++;
           log(P.name+' refused '+R.name+"'s demand — war");
         }
@@ -547,7 +584,7 @@ function stepWars(){
       const spark=ti.stock>=5&&tj.stock>=5 && world.rel[k]<25
                  && h(frame,300+i*3+j)<0.03;
       if((envy||spark) && !(ti.bless>0||tj.bless>0)){      // festivals keep peace
-        wars.push({a:i,b:j,budget:7,cause:envy?'envy':'a border spark'});
+        wars.push({a:i,b:j,budget:7,cause:envy?'envy':'a border spark',since:frame});
         warsStarted++;
         log(ti.name+' declared war on '+tj.name+' — '+(envy?'envy over the stockpile':'a border spark'));
       }
@@ -555,7 +592,15 @@ function stepWars(){
   }
 
   for(const w of [...wars]){
-    if(w.budget<=0||world.tribes[w.a].stock<=0||world.tribes[w.b].stock<=0){
+    // "Too broke to fight" must mean DESTITUTE, not merely out of timber.
+    // The old test was stock<=0 on either side, and wood-0 is the normal
+    // steady state once harvesting drives the forest extinct — so every late
+    // war ended on the tick it was declared. Measured: an arsonist held the
+    // torch for 251 ticks across 100 days and reached an enemy camp exactly
+    // zero times, because no war ever lasted long enough to walk across the
+    // map. Raids were quietly dying the same way.
+    const bust=t=>t.stock<=0&&t.food<=0;
+    if(w.budget<=0||bust(world.tribes[w.a])||bust(world.tribes[w.b])){
       wars=wars.filter(x=>x!==w); warsEnded++;
       const k=pk(w.a,w.b);
       truce[k]=frame+(3*DAY|0);
@@ -644,12 +689,19 @@ function stepCritters(){
         if(d<ring&&d<bd){bd=d;intruder=o;} }
     }
     const raidDuty = w && w.budget>0 && !intruder && c.id===dutyBearer(c.tribe,w.budget);
+    // the torch-bearer is a DIFFERENT member than the raider (different salt),
+    // and burning spends the same finite war budget stealing does — so arson
+    // is a choice between loot and ruin, never a free extra action, and the
+    // "every war must end" invariant survives untouched
+    const torchDuty = w && w.budget>0 && !intruder && !raidDuty &&
+      willingToBurn(w,c.tribe) && c.id===dutyBearer(c.tribe,w.since+7);
     const giftDuty = T.gift && !w && c.id===dutyBearer(c.tribe,T.gift.to+dayIndex());
 
     // tiered arbitration; margin-hysteresis only among the chores
     if(nearFire&&fd<130) c.mood='flee';
     else if(intruder)    c.mood='defend';
     else if(raidDuty)    c.mood='raid';
+    else if(torchDuty)   c.mood='torch';
     else if(giftDuty)    c.mood='gift';
     else{
       const wx=weather();
@@ -712,6 +764,43 @@ function stepCritters(){
           }
         } else {c.vx+=(en.camp.x-c.x)/d*.22*speed;c.vy+=(en.camp.y-c.y)/d*.22*speed;}
       }
+    } else if(c.mood==='torch'&&w){
+      // The target is the enemy SETTLEMENT, not their woodlot. Targeting trees
+      // was the first design and it was dead content: harvesting drives the
+      // forest to extinction (see the tree lifecycle), and wars mostly happen
+      // after that, so the arsonist reached the war's end without ever finding
+      // anything alive to light. Measured: torch mood entered, zero attacks
+      // completed. A weapon that depends on a resource the world reliably
+      // destroys is not a weapon. The woodpile always exists.
+      const enI=enemyOf(w,c.tribe), en=world.tribes[enI];
+      const d=Math.hypot(en.camp.x-c.x,en.camp.y-c.y)||1;
+      if(d<14){
+        const guard=cs.some(o=>o.tribe===enI&&o.wounded<=0&&
+          Math.hypot(o.x-c.x,o.y-c.y)<26);
+        if(guard)metrics.arsonBlocked++;
+        if(!guard){
+          const lost=Math.min(6,en.stock); en.stock-=lost;
+          metrics.arsonAttacks++; w.budget--; lastRaidFrame=frame;
+          // the stores go up, and any standing woods nearby catch with them —
+          // a set fire burns hotter than a careless one (12 vs the player's 10
+          // and lightning's 7)
+          let lit=0;
+          for(const t of world.trees){
+            if(t.state!=='alive')continue;
+            if(Math.hypot(t.x-en.camp.x,t.y-en.camp.y)>200)continue;
+            t.state='burning'; t.burn=0; t.budget=12;
+            firesSurvived++; lit++; break;
+          }
+          world.marks.push({x:en.camp.x,y:en.camp.y,ttl:1400,max:1400});
+          if(world.marks.length>60) world.marks.shift();
+          // burning is remembered harder than robbery, and leaves a scar that
+          // outlives the war: a permanent grudge, exactly like a war itself
+          bumpRel(c.tribe,enI,-18);
+          world.grudge[pk(c.tribe,enI)]++;
+          log(T.name+' put '+en.name+"'s stores to the torch — "+lost+
+              ' timber burned'+(lit?' and the woods caught':''));
+        }
+      } else {c.vx+=(en.camp.x-c.x)/d*.22*speed;c.vy+=(en.camp.y-c.y)/d*.22*speed;}
     } else if(c.mood==='gift'&&T.gift){
       const G=world.tribes[T.gift.to];
       const d=Math.hypot(G.camp.x-c.x,G.camp.y-c.y)||1;
@@ -1099,6 +1188,14 @@ function draw(){
       cx.beginPath();cx.arc(c.x,c.y,9,0,7);cx.stroke(); }
     if(c.mood==='gift'){ cx.strokeStyle='#7ee787';cx.lineWidth=1.5;
       cx.beginPath();cx.arc(c.x,c.y,9,0,7);cx.stroke(); }
+    if(c.mood==='torch'){                       // arsonist: orange ring + flame
+      cx.strokeStyle='#ff9d2e';cx.lineWidth=2;
+      cx.beginPath();cx.arc(c.x,c.y,10,0,7);cx.stroke();
+      const fl=3+Math.sin(frame/4+c.id)*1.2;
+      cx.fillStyle='#ffb454';
+      cx.beginPath();cx.arc(c.x+7,c.y-8,fl,0,7);cx.fill();
+      cx.fillStyle='#fff1c9';
+      cx.beginPath();cx.arc(c.x+7,c.y-9,fl*0.5,0,7);cx.fill(); }
     if(c.mood==='worship'){ cx.fillStyle='rgba(255,255,200,.6)';
       cx.font='8px sans-serif';cx.fillText('✦',c.x-2,c.y-10); }
     if((c.mood==='raid'||c.mood==='defend')&&world.tribes[c.tribe].spears>0){
@@ -1195,11 +1292,12 @@ function hud(){
     firesSurvived+(wildFires?' ('+wildFires+' wild)':'')+
     (burning?' · '+burning+' burning':'');
   const BGLYPH={granary:'🏚',lodge:'⛏',forge:'🔥',tower:'🗼',fields:'🌾'};
+  const burner=t=>t.tech.arson?'<b style="color:#ff9d2e" title="fire-setting">🜂</b>':'';
   document.getElementById('camps').innerHTML=world.tribes.map((t,i)=>
     '<span>'+(tribeWar(i)?'<b style="color:#ff6a5c">⚔</b> ':'')+t.name+
     ' <b>P'+t.pop+'</b> L'+t.level+' w'+t.stock+' s'+t.stone+
     ' f'+t.food+(t.shrine?' '+FAITHS[t.faith].glyph:'')+
-    ' <b>'+Object.keys(t.tech).length+'</b>tech ring'+Math.round(campRing(t))+
+    ' <b>'+Object.keys(t.tech).length+'</b>tech'+burner(t)+' ring'+Math.round(campRing(t))+
     ' '+BUILDINGS.filter(b=>t.buildings[b.id]).map(b=>BGLYPH[b.id]).join('')+
     '</span>').join('');
 }
@@ -1221,7 +1319,7 @@ function boot(seed){
            tributesPaid:0,tributeWars:0,alliances:0,
            dAid:0,dHoard:0,dShelter:0,dExpel:0,dReturned:0,dKept:0,
            levelsBuilt:0,births:0,techsResearched:0,
-           treesRespawned:0,deadStumps:0,buildingsRaised:0};
+           treesRespawned:0,deadStumps:0,buildingsRaised:0,arsonAttacks:0,arsonBlocked:0};
   history.replaceState(null,'','?seed='+seed);
   document.getElementById('log').innerHTML=
     '<div><span class="d">d1</span>three tribes woke by their fires</div>';
@@ -1246,6 +1344,7 @@ window.EMBER={ignite:(x,y)=>ignite(x,y,10,false),
   get warsEnded(){return warsEnded;},get metrics(){return metrics;},
   get chronicle(){return chronicle;},campRing,
   get season(){return season().name;},get marks(){return world.marks;},
+  willingToBurn,
   get roles(){return world.critters.map(c=>ROLES[c.role].id);},
   step(){frame++;stepFire();stepWars();stepCritters();}};
 
